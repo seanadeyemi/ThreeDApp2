@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace ThreeDApp2
 {
-    public class MyPolygon : Polygon
-    {
+    public class MyPolygon : Polygon,  IComparable<MyPolygon>
+	{
         public Point3D mPosition;
         public MyPolygon()
         {
@@ -42,5 +42,10 @@ namespace ThreeDApp2
         {
             return mPosition + Point(j);
         }
-    }
+
+		public int CompareTo(MyPolygon otherFace)
+		{
+			return (int)(this.Center.Z - otherFace.Center.Z); //In order of which is closest to the screen
+		}
+	}
 }

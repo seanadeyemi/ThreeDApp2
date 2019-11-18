@@ -38,28 +38,31 @@ namespace ThreeDApp2
             mShape[2] = new MyPolygon();
 
 
-            screenPoints[0] = new ShapeScreenPoints();
-            screenPoints[1] = new ShapeScreenPoints();
-            screenPoints[2] = new ShapeScreenPoints();
+			screenPoints[0] = new ShapeScreenPoints();
+			screenPoints[1] = new ShapeScreenPoints();
+			screenPoints[2] = new ShapeScreenPoints();
 
-            //mShape[0].SetSize(1);
-            //mShape[1].SetSize(1);
-            //mShape[2].SetSize(1);
+			//mShape[0].SetSize(1);
+			//mShape[1].SetSize(1);
+			//mShape[2].SetSize(1);
 
-            //mShape[0].RemoveAll();
-            //mShape[1].RemoveAll();
-            //mShape[2].RemoveAll();
+			//mShape[0].RemoveAll();
+			//mShape[1].RemoveAll();
+			//mShape[2].RemoveAll();
 
 
-            // Define a shape
-            mShape[0].Add(new Point3D(0, 10, 20));
+			// Define a shape
+			mShape[0].Add(new Point3D(0, 10, 20));
             mShape[0].Add(new Point3D(0, 0, 20));
             mShape[0].Add(new Point3D(10, 0, 20));
             mShape[0].Add(new Point3D(10, 10, 20));
             mShape[0].Add(new Point3D(5, 15, 20));
             mShape[0].Close();
 
-            Set2DPoints(mShape[0], ref screenPoints[0].PtList);
+			mShape[0].Center = new Point3D(5, 8, 20);
+
+       //     Set2DPoints(mShape[0], ref screenPoints[0].PtList);
+            Set2DPoints(mShape[0], ref mShape[0].screenPoints.PtList);
 
             // Shapes 1 and 2 are exactly the same as Shape 0 ...
             //mShape[1] = mShape[0];
@@ -71,35 +74,45 @@ namespace ThreeDApp2
             mShape[1].Add(new Point3D(10, 10, 30));
             mShape[1].Add(new Point3D(5, 15, 30));
             mShape[1].Close();
+			mShape[1].Center = new Point3D(5, 8, 30);
 
-            Set2DPoints(mShape[1], ref screenPoints[1].PtList);
+			//Set2DPoints(mShape[1], ref screenPoints[1].PtList);
+			Set2DPoints(mShape[1], ref mShape[1].screenPoints.PtList);
 
 
-            mShape[2].Add(new Point3D(0, 10, 50));
+
+			mShape[2].Add(new Point3D(0, 10, 50));
             mShape[2].Add(new Point3D(0, 0, 50));
             mShape[2].Add(new Point3D(10, 0, 50));
             mShape[2].Add(new Point3D(10, 10, 50));
             mShape[2].Add(new Point3D(5, 15, 50));
             mShape[2].Close();
+			mShape[2].Center = new Point3D(5, 8, 50);
 
-            Set2DPoints(mShape[2], ref screenPoints[2].PtList);
+			//Set2DPoints(mShape[2], ref screenPoints[2].PtList);
+			Set2DPoints(mShape[2], ref mShape[2].screenPoints.PtList);
 
 
-            // ... but at different positions
-            //mShape[1].PtChange(0, 0, 30);
-            //mShape[2].PtChange(0, 0, 50);
+			// ... but at different positions
+			//mShape[1].PtChange(0, 0, 30);
+			//mShape[2].PtChange(0, 0, 50);
 
-            //mShape[1].mPosition.z = 30;
-            //mShape[2].mPosition.z = 50;
+			//mShape[1].mPosition.z = 30;
+			//mShape[2].mPosition.z = 50;
 
-        }
-        private void Update2dPoints()
+		}
+        //private void Update2dPoints()
+        //{
+        //    Set2DPoints(mShape[0], ref screenPoints[0].PtList);
+        //    Set2DPoints(mShape[1], ref screenPoints[1].PtList);
+        //    Set2DPoints(mShape[2], ref screenPoints[2].PtList);
+        //}
+  private void Update2dPoints()
         {
-            Set2DPoints(mShape[0], ref screenPoints[0].PtList);
-            Set2DPoints(mShape[1], ref screenPoints[1].PtList);
-            Set2DPoints(mShape[2], ref screenPoints[2].PtList);
+            Set2DPoints(mShape[0], ref mShape[0].screenPoints.PtList);
+            Set2DPoints(mShape[1], ref mShape[1].screenPoints.PtList);
+            Set2DPoints(mShape[2], ref mShape[2].screenPoints.PtList);
         }
-
         private void RotateShapes(Axis axis, double degrees)
         {
             for (int i = 0; i < 3; i++)
@@ -139,8 +152,10 @@ namespace ThreeDApp2
                 }
 
                 Set2DPoints(po, ref ptList);
-                screenPoints[i].PtList = ptList;
-                mShape[i] = po;
+				mShape[i] = po;
+				mShape[i].screenPoints.PtList = ptList;
+                //screenPoints[i].PtList = ptList;
+                //mShape[i] = po;
             }
         }
 
@@ -230,12 +245,19 @@ namespace ThreeDApp2
             g.TranslateTransform(ClientRectangle.Width / 2, ClientRectangle.Height / 2);
             Point startPt = new Point();
             g.SmoothingMode = SmoothingMode.AntiAlias;
-            Matrix m;
+            //Matrix m;
+			Array.Sort(mShape);
 
             // Draw each of our shapes
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < mShape.Length; i++)
             {
-                // Go thru each point
+
+
+				g.FillPolygon(Brushes.DarkGray, mShape[i].screenPoints.PtList.ToArray());
+				//g.FillPolygon(Brushes.DarkGray, screenPoints[i].PtList.ToArray());
+                
+				
+				// Go thru each point
                 for (int j = 0; j < mShape[i].GetSize(); j++)
                 {
                     var obj = mShape[i].Absolute(j);//[j];
@@ -243,7 +265,9 @@ namespace ThreeDApp2
                     //pt.X = (Int32)(s * (obj.X - mCamera.X) * mScreen.Z / (obj.Z - mCamera.Z));
                     //pt.Y = (Int32)(s * (obj.Y - mCamera.Y) * mScreen.Z / (obj.Z - mCamera.Z));
 
-                    pt = screenPoints[i].PtList[j];
+                  //  pt = screenPoints[i].PtList[j];
+                    pt = mShape[i].screenPoints.PtList[j];
+
 
                     if (j == 0)
                     {
@@ -252,6 +276,7 @@ namespace ThreeDApp2
                     }
                     else
                     {
+
                         g.DrawLine(Pens.Black, startPt, pt);  // Draw a line to the others
                         startPt = pt;
                     }

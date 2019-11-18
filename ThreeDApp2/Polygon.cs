@@ -1,15 +1,18 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace ThreeDApp2
 {
-    public class Polygon
-    {
+    public class Polygon 
+	{
         //int m_n;
         protected List<Point3D> m_point = new List<Point3D> { };
         float EPSILON = 0.001f;
+		public Point3D Center = new Point3D(0,0,0);
+		public ShapeScreenPoints screenPoints = new ShapeScreenPoints();
 
-        public Polygon()
+		public Polygon()
         {
 
         }
@@ -126,7 +129,11 @@ namespace ThreeDApp2
         {
             return (float)x;
         }
-    }
+		//public int CompareTo(Polygon otherFace)
+		//{
+		//	return (int)(this.Center.Z - otherFace.Center.Z); //In order of which is closest to the screen
+		//}
+	}
 
 
 }
