@@ -10,6 +10,6 @@ namespace ThreeDApp2
     public class ShapeScreenPoints
     {
         public List<Point> PtList = new List<Point>();
-
-    }
+		
+	}
 }
