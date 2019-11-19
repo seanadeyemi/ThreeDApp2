@@ -7,9 +7,15 @@ using System.Threading.Tasks;
 
 namespace ThreeDApp2
 {
-    public class ShapeScreenPoints
+    public class ShapeScreenPoints : IComparable<ShapeScreenPoints>
     {
         public List<Point> PtList = new List<Point>();
+        public float Z;
 
+        public int CompareTo(ShapeScreenPoints other)
+        {
+
+            return (int)(this.Z - other.Z);
+        }
     }
 }

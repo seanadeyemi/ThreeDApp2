@@ -60,7 +60,7 @@ namespace ThreeDApp2
             mShape[0].Close();
 
             Set2DPoints(mShape[0], ref screenPoints[0].PtList);
-
+            screenPoints[0].Z = 20;
             // Shapes 1 and 2 are exactly the same as Shape 0 ...
             //mShape[1] = mShape[0];
             //mShape[2] = mShape[0];
@@ -73,7 +73,7 @@ namespace ThreeDApp2
             mShape[1].Close();
 
             Set2DPoints(mShape[1], ref screenPoints[1].PtList);
-
+            screenPoints[1].Z = 30;
 
             mShape[2].Add(new Point3D(0, 10, 50));
             mShape[2].Add(new Point3D(0, 0, 50));
@@ -83,6 +83,7 @@ namespace ThreeDApp2
             mShape[2].Close();
 
             Set2DPoints(mShape[2], ref screenPoints[2].PtList);
+            screenPoints[2].Z = 50;
 
 
             // ... but at different positions
@@ -107,6 +108,7 @@ namespace ThreeDApp2
                 // Go thru each point
                 MyPolygon po = new MyPolygon();
                 List<Point> ptList = new List<Point>();
+                float Z = 0;
                 for (int j = 0; j < mShape[i].GetSize(); j++)
                 {
                     Point3D pt3d = mShape[i].Absolute(j);
@@ -118,18 +120,21 @@ namespace ThreeDApp2
                             pt3d = Point3D.Translate(pt3d, shapeOrigin, point0);
                             pt3d = Point3D.RotateX(pt3d, degrees);
                             rotPt3d = Point3D.Translate(pt3d, point0, shapeOrigin);
+                            Z = rotPt3d.Z;
                             break;
                         case Axis.Y:
                             pt3d = Point3D.Translate(pt3d, shapeOrigin, point0);
                             pt3d = Point3D.RotateY(pt3d, degrees);
                             rotPt3d = Point3D.Translate(pt3d, point0, shapeOrigin);
                             //rotPt3d = Point3D.RotateY(pt3d, degrees);
+                            Z = rotPt3d.Z;
                             break;                           
                         case Axis.Z:
                             //rotPt3d = Point3D.RotateZ(pt3d, degrees);
                             pt3d = Point3D.Translate(pt3d, shapeOrigin, point0);
                             pt3d = Point3D.RotateZ(pt3d, degrees);
                             rotPt3d = Point3D.Translate(pt3d, point0, shapeOrigin);
+                            Z = rotPt3d.Z;
                             break;
                     }
 
@@ -140,6 +145,7 @@ namespace ThreeDApp2
 
                 Set2DPoints(po, ref ptList);
                 screenPoints[i].PtList = ptList;
+                screenPoints[i].Z = (int)Z;
                 mShape[i] = po;
             }
         }
@@ -232,9 +238,15 @@ namespace ThreeDApp2
             g.SmoothingMode = SmoothingMode.AntiAlias;
             Matrix m;
 
+            Array.Sort(screenPoints);
+            Array.Reverse(screenPoints);
+
             // Draw each of our shapes
             for (int i = 0; i < 3; i++)
             {
+
+                
+                g.FillPolygon(Brushes.DarkGray, screenPoints[i].PtList.ToArray());
                 // Go thru each point
                 for (int j = 0; j < mShape[i].GetSize(); j++)
                 {
