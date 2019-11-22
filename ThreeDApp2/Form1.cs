@@ -18,6 +18,8 @@ namespace ThreeDApp2
 		string textVal;
 		Point lastMousePos = Point.Empty;
 
+		Point3D normalSample = new Point3D(0, 0, 0);
+
 
 		int s = 10;
 
@@ -139,7 +141,7 @@ namespace ThreeDApp2
 			{
 
 				var x = e.X - lastMousePos.X;
-					var y = e.Y - lastMousePos.Y;
+				var y = e.Y - lastMousePos.Y;
 				//textVal = String.Format("{0} :: {1}", e.X, e.Y);
 				textVal = String.Format("{0} :: {1}", x, y);
 
@@ -273,6 +275,15 @@ namespace ThreeDApp2
 				//screenPoints[i].PtList = ptList;
 				//mShape[i] = po;
 			}
+
+			Point3D[] pts = new Point3D[3];
+			pts[0] = mShape[0].Absolute(0);
+			pts[1] = mShape[0].Absolute(1);
+			pts[2] = mShape[0].Absolute(2);
+
+			normalSample = calcNormal(pts);
+
+
 		}
 
 		private void Form1_KeyDown(object sender, KeyEventArgs e)
@@ -361,6 +372,7 @@ namespace ThreeDApp2
 			g.DrawString($"Camera: {mCamera.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 5f);
 			g.DrawString($"Cur Pt: {currentPoint.X}, {currentPoint.Y}", SystemFonts.DefaultFont, Brushes.Black, 5f, 25f);
 			g.DrawString($"mouse pos: {textVal}", SystemFonts.DefaultFont, Brushes.Black, 5f, 45f);
+			g.DrawString($"normal: X: {normalSample.X}, Y: {normalSample.Y}, Z: {normalSample.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 65f);
 			g.TranslateTransform(ClientRectangle.Width / 2, ClientRectangle.Height / 2);
 			Point startPt = new Point();
 			g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -432,6 +444,53 @@ namespace ThreeDApp2
 		{
 			//throw new NotImplementedException();
 		}
+
+		private Point3D calcNormal(Point3D[] v)               // Calculates Normal For A Quad Using 3 Points
+		{
+			Point3D outer = new Point3D(0, 0, 0);
+			Point3D v1 = new Point3D(0, 0, 0);
+			Point3D v2 = new Point3D(0, 0, 0);                   // Vector 1 (x,y,z) & Vector 2 (x,y,z)
+
+
+			//const int x = 0;                     // Define X Coord
+			//const int y = 1;                     // Define Y Coord
+			//const int z = 2;                     // Define Z Coord
+
+			// Finds The Vector Between 2 Points By Subtracting
+			// The x,y,z Coordinates From One Point To Another.
+
+			// Calculate The Vector From Point 1 To Point 0
+			v1.X = v[0].X - v[1].X;                  // Vector 1.x=Vertex[0].x-Vertex[1].x
+			v1.Y = v[0].Y - v[1].Y;                  // Vector 1.y=Vertex[0].y-Vertex[1].y
+			v1.Z = v[0].Z - v[1].Z;                  // Vector 1.z=Vertex[0].y-Vertex[1].z
+													 // Calculate The Vector From Point 2 To Point 1
+			v2.X = v[1].X - v[2].X;                  // Vector 2.x=Vertex[0].x-Vertex[1].x
+			v2.Y = v[1].Y - v[2].Y;                  // Vector 2.y=Vertex[0].y-Vertex[1].y
+			v2.Z = v[1].Z - v[2].Z;                  // Vector 2.z=Vertex[0].z-Vertex[1].z
+													 // Compute The Cross Product To Give Us A Surface Normal
+			outer.X = v1.Y * v2.Z - v1.Z * v2.Y;             // Cross Product For Y - Z
+			outer.Y = v1.Z * v2.X - v1.X * v2.Z;             // Cross Product For X - Z
+			outer.Z = v1.X * v2.Y - v1.Y * v2.X;             // Cross Product For X - Y
+
+			ReduceToUnit(ref outer);                      // Normalize The Vectors
+			return outer;
+		}
+
+		void ReduceToUnit(ref Point3D vector)                  // Reduces A Normal Vector (3 Coordinates)
+		{                                   // To A Unit Normal Vector With A Length Of One.
+			float length;                           // Holds Unit Length
+													// Calculates The Length Of The Vector
+			length = (float)Math.Sqrt((vector.X * vector.X) + (vector.Y * vector.Y) + (vector.Z * vector.Z));
+
+			if (length == 0.0f)                      // Prevents Divide By 0 Error By Providing
+				length = 1.0f;                      // An Acceptable Value For Vectors To Close To 0.
+
+			vector.X /= length;                        // Dividing Each Element By
+			vector.Y /= length;                        // The Length Results In A
+			vector.Z /= length;                        // Unit Normal Vector.
+		}
+
+
 	}
 
 	public enum Axis
