@@ -13,6 +13,7 @@ namespace ThreeDApp2
         {
             mPosition = new Point3D(0, 0, 0);
         }
+        
 
         public void PtChange(Point3D pt)
         {
