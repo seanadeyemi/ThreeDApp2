@@ -52,6 +52,7 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="HSV.cs" />
     <Compile Include="MyPolygon.cs" />
     <Compile Include="Point3D.cs" />
     <Compile Include="Polygon.cs" />
