@@ -44,6 +44,7 @@ namespace ThreeDApp2
         protected Point3D Point(int index)
         {
          //   Debug.Assert(index > 0 && index < m_point.Count);
+            
             return m_point[index];
         }
 

@@ -13,8 +13,9 @@ namespace ThreeDApp2
         MyPolygon[] mShape = new MyPolygon[3];
         ShapeScreenPoints[] screenPoints = new ShapeScreenPoints[3];
         PointInfo pointInfo = new PointInfo();
-
+        Color DefaultColor = Color.Gray;
         Point[] line = new Point[2];
+        bool MouseIsDown = false;
 
 
         MyPolygon NewPolygon = null;
@@ -25,10 +26,10 @@ namespace ThreeDApp2
         Point lastMousePos = Point.Empty;
         int offsetWidth, offsetHeight;
 
-		Point3D normalSample = new Point3D(0, 0, 0);
+        Point3D normalSample = new Point3D(0, 0, 0);
 
 
-		int s = 10;
+        int s = 10;
 
         public Form1()
         {
@@ -130,20 +131,31 @@ namespace ThreeDApp2
 
         private void Form1_MouseUp(object sender, MouseEventArgs e)
         {
+            MouseIsDown = false;
+
             if (NewPolygon == null) return;
 
             if (pointInfo != null)
             {
-                if (pointInfo.IsOnPoint)    
+                if (pointInfo.IsOnPoint)
                 {
                     NewPolygon.Add(pointInfo.p3d);
-                    var pt = e.Location;//pointInfo.foundPoint;
-                                        //var pt = Fetch2DPoint(pointInfo.p3d);
-                                        //   NewPolygon.screenPoints.PtList = new List<Point>();
-                                        //  NewPolygon.screenPoints.PtList.Add(pt);
-                    //Array.Resize(ref mShape, mShape.Length + 1);
-                    //mShape[mShape.GetUpperBound(0)] = NewPolygon;
-                    line[1] = pointInfo.foundPoint;//pt;
+                    NewPolygon.screenPoints.PtList.Add(pointInfo.foundPoint);
+
+                    Array.Resize(ref mShape, mShape.Length + 1);
+                    mShape[mShape.GetUpperBound(0)] = NewPolygon;
+
+                    NewPolygon = null;
+                    line = new Point[2];
+
+                    // var pt = e.Location;//pointInfo.foundPoint;
+                    //var pt = Fetch2DPoint(pointInfo.p3d);
+                    //   NewPolygon.screenPoints.PtList = new List<Point>();
+                    //  NewPolygon.screenPoints.PtList.Add(pt);
+
+                    //line[1] = pointInfo.foundPoint;//pt;
+
+                    BuildGraph();
                 }
             }
 
@@ -157,23 +169,33 @@ namespace ThreeDApp2
         {
             if (e.Button == MouseButtons.Left)
             {
-                if (pointInfo != null)
+                if (panBtn.Checked)
                 {
-                    if (pointInfo.IsOnPoint)
-                    {
-                        NewPolygon = new MyPolygon();
-                        NewPolygon.Add(pointInfo.p3d);
-                        var pt = pointInfo.foundPoint;//Fetch2DPoint(pointInfo.p3d);
-                                                      //NewPolygon.screenPoints.PtList = new List<Point>();
-                                                      //NewPolygon.screenPoints.PtList.Add(pt);
-                        line[0] = pt;
-                    }
-
-
+                    MouseIsDown = true;
                 }
-               
+                if (drawBtn.Checked)
+                {
+                    if (pointInfo != null)
+                    {
+                        if (pointInfo.IsOnPoint)
+                        {
+                            NewPolygon = new MyPolygon();
+                            NewPolygon.Add(pointInfo.p3d);
+                            NewPolygon.screenPoints.PtList.Add(pointInfo.foundPoint);
+                            //var pt = pointInfo.foundPoint;//Fetch2DPoint(pointInfo.p3d);
+                            //NewPolygon.screenPoints.PtList = new List<Point>();
+                            //NewPolygon.screenPoints.PtList.Add(pt);
+                            // line[0] = pt;
+                        }
+
+
+                    }
+                }
+
+
+
             }
- Invalidate();
+            Invalidate();
 
         }
 
@@ -198,7 +220,43 @@ namespace ThreeDApp2
         private void Form1_MouseMove(object sender, MouseEventArgs e)
         {
             //lastMousePos = Point.Empty;
+            if (e.Button == MouseButtons.Left)
+            {
+                if (MouseIsDown)
+                {
+                    int delta = 1;
+                    var x = e.X - lastMousePos.X;
+                    var y = e.Y - lastMousePos.Y;
 
+                    if (x > 0 && x > y)
+                    {
+                        mCamera.Y -= delta;
+                        Update2dPoints();
+                        Invalidate();
+                    }
+                    if (x < 0 && x < y)
+                    {
+                        mCamera.Y += delta;
+                        Update2dPoints();
+                        Invalidate();
+                    }
+
+                    if (y > 0 && y > x)
+                    {
+                        mCamera.X -= delta;
+                        Update2dPoints();
+                        Invalidate();
+                    }
+
+                    if (y < 0 && y < x)
+                    {
+                        mCamera.X += delta;
+                        Update2dPoints();
+                        Invalidate();
+                    }
+
+                }
+            }
             if (e.Button == MouseButtons.Middle)
             {
 
@@ -305,6 +363,14 @@ namespace ThreeDApp2
             {
                 //   NewPolygon.screenPoints.PtList.Add(e.Location);
                 //line[1] = e.Location;
+                if (NewPolygon.screenPoints.PtList.Count == 1)
+                {
+                    line[0] = NewPolygon.screenPoints.PtList[0];
+                    line[1] = new Point(e.Location.X - offsetWidth, e.Location.Y - offsetHeight);
+
+
+
+                }
             }
 
 
@@ -337,7 +403,7 @@ namespace ThreeDApp2
         }
         private void RotateShapes(Axis axis, double degrees)
         {
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < mShape.Length; i++)
             {
                 // Go thru each point
                 MyPolygon po = new MyPolygon();
@@ -383,19 +449,19 @@ namespace ThreeDApp2
                 mShape[i].screenPoints.PtList = ptList;
                 mShape[i].Center.Z = depth;
 
-				//screenPoints[i].PtList = ptList;
-				//mShape[i] = po;
-			}
+                //screenPoints[i].PtList = ptList;
+                //mShape[i] = po;
+            }
 
-			Point3D[] pts = new Point3D[3];
-			pts[0] = mShape[0].Absolute(0);
-			pts[1] = mShape[0].Absolute(1);
-			pts[2] = mShape[0].Absolute(2);
+            //Point3D[] pts = new Point3D[3];
+            //pts[0] = mShape[0][0];//.Absolute(0);
+            //pts[1] = mShape[0][1];//.Absolute(1);
+            //pts[2] = mShape[0][2];//.Absolute(2);
 
-			normalSample = calcNormal(pts);
+            //normalSample = calcNormal(pts);
 
 
-		}
+        }
 
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
@@ -474,19 +540,19 @@ namespace ThreeDApp2
             }
         }
 
-		private void Form1_Paint(object sender, PaintEventArgs e)
-		{
-			//throw new NotImplementedException();
-			//int s = 10;  // Just for scaling
-			Point pt = new Point();
-			Graphics g = e.Graphics;
-			g.DrawString($"Camera: {mCamera.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 5f);
-			g.DrawString($"Cur Pt: {currentPoint.X}, {currentPoint.Y}", SystemFonts.DefaultFont, Brushes.Black, 5f, 25f);
-			g.DrawString($"mouse pos: {textVal}", SystemFonts.DefaultFont, Brushes.Black, 5f, 45f);
-			g.DrawString($"normal: X: {normalSample.X}, Y: {normalSample.Y}, Z: {normalSample.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 65f);
-			g.TranslateTransform(ClientRectangle.Width / 2, ClientRectangle.Height / 2);
-			Point startPt = new Point();
-			g.SmoothingMode = SmoothingMode.AntiAlias;
+        private void Form1_Paint(object sender, PaintEventArgs e)
+        {
+            //throw new NotImplementedException();
+            //int s = 10;  // Just for scaling
+            Point pt = new Point();
+            Graphics g = e.Graphics;
+            g.DrawString($"Camera: {mCamera.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 5f);
+            g.DrawString($"Cur Pt: {currentPoint.X}, {currentPoint.Y}", SystemFonts.DefaultFont, Brushes.Black, 5f, 25f);
+            g.DrawString($"mouse pos: {textVal}", SystemFonts.DefaultFont, Brushes.Black, 5f, 45f);
+            g.DrawString($"normal: X: {normalSample.X}, Y: {normalSample.Y}, Z: {normalSample.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 65f);
+            g.TranslateTransform(ClientRectangle.Width / 2, ClientRectangle.Height / 2);
+            Point startPt = new Point();
+            g.SmoothingMode = SmoothingMode.AntiAlias;
 
 
 
@@ -498,8 +564,10 @@ namespace ThreeDApp2
             // Draw each of our shapes
             for (int i = 0; i < mShape.Length; i++)
             {
-
-                g.FillPolygon(Brushes.DarkGray, mShape[i].screenPoints.PtList.ToArray());
+                Color shadedColor = FinalColor(mShape[i], new Point3D(5, 50, 10), g);
+                //g.FillPolygon(Brushes.DarkGray, mShape[i].screenPoints.PtList.ToArray());
+                var brush = new SolidBrush(shadedColor);
+                g.FillPolygon(brush, mShape[i].screenPoints.PtList.ToArray());
 
 
                 // Go thru each point
@@ -527,7 +595,7 @@ namespace ThreeDApp2
                 g.FillEllipse(Brushes.Red, new RectangleF(currentPoint.X - 3, currentPoint.Y - 3, 6, 6));
             }
 
-           // if (NewPolygon != null)
+            if (NewPolygon != null)
             {
                 //if(NewPolygon.screenPoints.PtList.Count > 1)
                 if (line.Length > 1)
@@ -564,58 +632,210 @@ namespace ThreeDApp2
             return pt;
         }
 
-		private void Form1_Load(object sender, EventArgs e)
-		{
-			//throw new NotImplementedException();
-		}
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            //throw new NotImplementedException();
+            BuildGraph();
+        }
 
-		private Point3D calcNormal(Point3D[] v)               // Calculates Normal For A Quad Using 3 Points
-		{
-			Point3D outer = new Point3D(0, 0, 0);
-			Point3D v1 = new Point3D(0, 0, 0);
-			Point3D v2 = new Point3D(0, 0, 0);                   // Vector 1 (x,y,z) & Vector 2 (x,y,z)
+        private double dotProduct(double[] vect_A,
+                           double[] vect_B)
+        {
 
+            double product = 0;
 
-			//const int x = 0;                     // Define X Coord
-			//const int y = 1;                     // Define Y Coord
-			//const int z = 2;                     // Define Z Coord
+            // Loop for calculate cot product 
+            for (int i = 0; i < 3; i++)
+                product = product + vect_A[i]
+                                 * vect_B[i];
+            return product;
+        }
+        private Color FinalColor(MyPolygon poly, Point3D lightPoint, Graphics gr)
+        {
+            Color output = Color.Empty;
+            if (poly.GetSize() > 2)
+            {
+                Point3D[] pts = new Point3D[3];
+                pts[0] = poly[0];//.Absolute(0);
+                pts[1] = poly[1];//.Absolute(1);
+                pts[2] = poly[2];//.Absolute(2);
 
-			// Finds The Vector Between 2 Points By Subtracting
-			// The x,y,z Coordinates From One Point To Another.
-
-			// Calculate The Vector From Point 1 To Point 0
-			v1.X = v[0].X - v[1].X;                  // Vector 1.x=Vertex[0].x-Vertex[1].x
-			v1.Y = v[0].Y - v[1].Y;                  // Vector 1.y=Vertex[0].y-Vertex[1].y
-			v1.Z = v[0].Z - v[1].Z;                  // Vector 1.z=Vertex[0].y-Vertex[1].z
-													 // Calculate The Vector From Point 2 To Point 1
-			v2.X = v[1].X - v[2].X;                  // Vector 2.x=Vertex[0].x-Vertex[1].x
-			v2.Y = v[1].Y - v[2].Y;                  // Vector 2.y=Vertex[0].y-Vertex[1].y
-			v2.Z = v[1].Z - v[2].Z;                  // Vector 2.z=Vertex[0].z-Vertex[1].z
-													 // Compute The Cross Product To Give Us A Surface Normal
-			outer.X = v1.Y * v2.Z - v1.Z * v2.Y;             // Cross Product For Y - Z
-			outer.Y = v1.Z * v2.X - v1.X * v2.Z;             // Cross Product For X - Z
-			outer.Z = v1.X * v2.Y - v1.Y * v2.X;             // Cross Product For X - Y
-
-			ReduceToUnit(ref outer);                      // Normalize The Vectors
-			return outer;
-		}
-
-		void ReduceToUnit(ref Point3D vector)                  // Reduces A Normal Vector (3 Coordinates)
-		{                                   // To A Unit Normal Vector With A Length Of One.
-			float length;                           // Holds Unit Length
-													// Calculates The Length Of The Vector
-			length = (float)Math.Sqrt((vector.X * vector.X) + (vector.Y * vector.Y) + (vector.Z * vector.Z));
-
-			if (length == 0.0f)                      // Prevents Divide By 0 Error By Providing
-				length = 1.0f;                      // An Acceptable Value For Vectors To Close To 0.
-
-			vector.X /= length;                        // Dividing Each Element By
-			vector.Y /= length;                        // The Length Results In A
-			vector.Z /= length;                        // Unit Normal Vector.
-		}
+                var unitNormal = calcNormal(pts);
 
 
-	}
+                ReduceToUnit(ref lightPoint);
+                var shadeVal = dotProduct(new double[] { unitNormal.X, unitNormal.Y, unitNormal.Z }, new double[] { lightPoint.X, lightPoint.Y, lightPoint.Z });
+                shadeVal *= 255;
+                var shade = Convert.ToInt32(shadeVal);
+                if (shade < 0)
+                {
+                    shade = 0;
+                }
+
+                gr.DrawString(shadeVal.ToString() + $" {lightPoint.X}, {lightPoint.Y}, {lightPoint.Z}", SystemFonts.DefaultFont, Brushes.Black, new PointF(5f, 55f));
+                // output = Color.FromArgb(DefaultColor.R + shade, DefaultColor.G + shade, DefaultColor.B + shade);
+                output = Color.FromArgb(shade, shade, shade);
+            }
+
+            return output;
+        }
+
+        private Point3D calcNormal(Point3D[] v)               // Calculates Normal For A Quad Using 3 Points
+        {
+            Point3D outer = new Point3D(0, 0, 0);
+            Point3D v1 = new Point3D(0, 0, 0);
+            Point3D v2 = new Point3D(0, 0, 0);                   // Vector 1 (x,y,z) & Vector 2 (x,y,z)
+
+
+            //const int x = 0;                     // Define X Coord
+            //const int y = 1;                     // Define Y Coord
+            //const int z = 2;                     // Define Z Coord
+
+            // Finds The Vector Between 2 Points By Subtracting
+            // The x,y,z Coordinates From One Point To Another.
+
+            // Calculate The Vector From Point 1 To Point 0
+            v1.X = v[0].X - v[1].X;                  // Vector 1.x=Vertex[0].x-Vertex[1].x
+            v1.Y = v[0].Y - v[1].Y;                  // Vector 1.y=Vertex[0].y-Vertex[1].y
+            v1.Z = v[0].Z - v[1].Z;                  // Vector 1.z=Vertex[0].y-Vertex[1].z
+                                                     // Calculate The Vector From Point 2 To Point 1
+            v2.X = v[1].X - v[2].X;                  // Vector 2.x=Vertex[0].x-Vertex[1].x
+            v2.Y = v[1].Y - v[2].Y;                  // Vector 2.y=Vertex[0].y-Vertex[1].y
+            v2.Z = v[1].Z - v[2].Z;                  // Vector 2.z=Vertex[0].z-Vertex[1].z
+                                                     // Compute The Cross Product To Give Us A Surface Normal
+            outer.X = v1.Y * v2.Z - v1.Z * v2.Y;             // Cross Product For Y - Z
+            outer.Y = v1.Z * v2.X - v1.X * v2.Z;             // Cross Product For X - Z
+            outer.Z = v1.X * v2.Y - v1.Y * v2.X;             // Cross Product For X - Y
+
+            ReduceToUnit(ref outer);                      // Normalize The Vectors
+            return outer;
+        }
+
+        void ReduceToUnit(ref Point3D vector)                  // Reduces A Normal Vector (3 Coordinates)
+        {                                   // To A Unit Normal Vector With A Length Of One.
+            float length;                           // Holds Unit Length
+                                                    // Calculates The Length Of The Vector
+            length = (float)Math.Sqrt((vector.X * vector.X) + (vector.Y * vector.Y) + (vector.Z * vector.Z));
+
+            if (length == 0.0f)                      // Prevents Divide By 0 Error By Providing
+                length = 1.0f;                      // An Acceptable Value For Vectors To Close To 0.
+
+            vector.X /= length;                        // Dividing Each Element By
+            vector.Y /= length;                        // The Length Results In A
+            vector.Z /= length;                        // Unit Normal Vector.
+        }
+
+        private void zoomInBtn_Click(object sender, EventArgs e)
+        {
+            int delta = 1;
+            mCamera.Z += delta;
+            Update2dPoints();
+            Invalidate();
+        }
+
+        private void zoomOutBtn_Click(object sender, EventArgs e)
+        {
+            int delta = 1;
+            mCamera.Z -= delta;
+            Update2dPoints();
+            Invalidate();
+        }
+
+        void BuildGraph()
+        {
+            //read vertices or nodes
+            var Nodes = new Dictionary<int, PathSNode>();
+            int m = 0;
+            int g = 0;
+            int max = 0;
+
+            foreach(var poly in mShape)
+            {
+                max += poly.GetSize();
+            }
+
+            for (int k = 0; k < mShape.Length; k++)
+            {
+
+                var poly = mShape[k];
+                for (int j = 0; j < poly.GetSize(); j++)
+                {
+                    var vertex = poly[j];
+                    PathSNode new_node = new PathSNode();
+                    new_node.Id = m;
+                    new_node.Location = vertex;
+
+                    Nodes.Add(new_node.Id, new_node);
+                    m++;
+                }
+
+                //read edges or links
+                var Links = new Dictionary<string, PathSLink>();
+                for (int n = 0; n < poly.GetSize(); n++)
+                {
+                    PathSLink new_link = new PathSLink();
+                    int num = g + 1 < max ? 1 : 0;
+                    if (n + 1 < poly.GetSize())
+                    {
+                        new_link.Node1 = Nodes[g];
+                        new_link.Node2 = Nodes[g + num];
+
+                        Links.Add(g + "-" + (g + num), new_link);
+
+                        new_link.Node1.Links.Add(g + num, new_link);
+                        new_link.Node2.Links.Add(g, new_link);
+
+                        g++;
+                    }
+                    
+
+                }
+            }
+
+
+        }
+
+        public Func<T, IEnumerable<T>> ShortestPathFunction<T>(Graph<T> graph, T start)
+        {
+            var previous = new Dictionary<T, T>();
+
+            var queue = new Queue<T>();
+            queue.Enqueue(start);
+
+            while (queue.Count > 0)
+            {
+                var vertex = queue.Dequeue();
+                foreach (var neighbor in graph.AdjacencyList[vertex])
+                {
+                    if (previous.ContainsKey(neighbor))
+                        continue;
+
+                    previous[neighbor] = vertex;
+                    queue.Enqueue(neighbor);
+                }
+            }
+
+            Func<T, IEnumerable<T>> shortestPath = v =>
+            {
+                var path = new List<T> { };
+
+                var current = v;
+                while (!current.Equals(start))
+                {
+                    path.Add(current);
+                    current = previous[current];
+                };
+
+                path.Add(start);
+                path.Reverse();
+
+                return path;
+            };
+
+            return shortestPath;
+        }
+
+    }
 
     public enum Axis
     {
@@ -628,6 +848,34 @@ namespace ThreeDApp2
         public bool IsOnPoint = false;
         public Point foundPoint = Point.Empty;
         public int foundPointIndex = -1;
+    }
+    public class Graph<T>
+    {
+        public Graph() { }
+        public Graph(IEnumerable<T> vertices, IEnumerable<Tuple<T, T>> edges)
+        {
+            foreach (var vertex in vertices)
+                AddVertex(vertex);
+
+            foreach (var edge in edges)
+                AddEdge(edge);
+        }
+
+        public Dictionary<T, HashSet<T>> AdjacencyList { get; } = new Dictionary<T, HashSet<T>>();
+
+        public void AddVertex(T vertex)
+        {
+            AdjacencyList[vertex] = new HashSet<T>();
+        }
+
+        public void AddEdge(Tuple<T, T> edge)
+        {
+            if (AdjacencyList.ContainsKey(edge.Item1) && AdjacencyList.ContainsKey(edge.Item2))
+            {
+                AdjacencyList[edge.Item1].Add(edge.Item2);
+                AdjacencyList[edge.Item2].Add(edge.Item1);
+            }
+        }
     }
 }
 
