@@ -1,11 +1,12 @@
 ﻿using System;
-using System.Diagnostics;
 
 namespace ThreeDApp2
 {
     public class MyPolygon : Polygon, IComparable<MyPolygon>
     {
         public Point3D mPosition;
+        const float EPSILON = 0.001f;
+
         public MyPolygon()
         {
             mPosition = new Point3D(0, 0, 0);
@@ -47,7 +48,7 @@ namespace ThreeDApp2
                 //Console.WriteLine(name);
                 //var ln = new StackFrame(1).GetFileLineNumber();
                 //Console.WriteLine(ln);
-  
+
                 return mPosition + Point(j);
             }
             catch (Exception ex)
@@ -57,6 +58,16 @@ namespace ThreeDApp2
             }
 
         }
+
+        //public bool Closed()
+        //{
+        //    if (ABS(m_point[GetSize() - 1].X - m_point[0].X) > EPSILON) return false;
+        //    if (ABS(m_point[GetSize() - 1].Y - m_point[0].Y) > EPSILON) return false;
+        //    if (ABS(m_point[GetSize() - 1].Z - m_point[0].Z) > EPSILON) return false;
+        //    return true;
+        //}
+
+      
 
         public int CompareTo(MyPolygon otherFace)
         {

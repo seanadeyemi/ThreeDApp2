@@ -18,6 +18,15 @@ namespace ThreeDApp2
         bool MouseIsDown = false;
 
 
+        Point infiniteX = Point.Empty;
+        Point infiniteY = Point.Empty;
+        Point infiniteZ = Point.Empty;
+
+        Point3D infinite3DY = null;
+        Point3D infinite3DX = null;
+        Point3D infinite3DZ = null;
+
+
         MyPolygon NewPolygon = null;
         Point3D point0 = new Point3D(0, 0, 0); //Used for reference
         Point3D shapeOrigin = new Point3D(0, 0, 0);
@@ -27,7 +36,9 @@ namespace ThreeDApp2
         int offsetWidth, offsetHeight;
 
         Point3D normalSample = new Point3D(0, 0, 0);
-
+        Dictionary<int, Point3D> pointRef = new Dictionary<int, Point3D>();
+        Dictionary<int, int> shapeRef = new Dictionary<int, int>();
+        Point3D defaultY3D = new Point3D(0, 300, 20);
 
         int s = 10;
 
@@ -89,6 +100,11 @@ namespace ThreeDApp2
 
 
 
+            infinite3DY = defaultY3D;
+            infiniteY = Fetch2DPoint(infinite3DY);
+
+
+
             // Shapes 1 and 2 are exactly the same as Shape 0 ...
             //mShape[1] = mShape[0];
             //mShape[2] = mShape[0];
@@ -139,15 +155,40 @@ namespace ThreeDApp2
             {
                 if (pointInfo.IsOnPoint)
                 {
+
+                    //if (!NewPolygon.Contains(pointInfo.p3d))
+                    //{
                     NewPolygon.Add(pointInfo.p3d);
                     NewPolygon.screenPoints.PtList.Add(pointInfo.foundPoint);
+                    //}
+                    //if (!NewPolygon.Contains(pointInfo.p3dBefore))
+                    //{
+                    //    NewPolygon.Add(pointInfo.p3dBefore);
+                    //}
+
+                    //if (!NewPolygon.Contains(pointInfo.p3dAfter))
+                    //{
+                    //    NewPolygon.Add(pointInfo.p3dAfter);
+                    //}
+
+
+
+                    //NewPolygon.screenPoints.PtList.Add(pointInfo.pointBefore);
+
+
+                    //NewPolygon.screenPoints.PtList.Add(pointInfo.pointAfter);
+
+
+                    //NewPolygon.screenPoints.PtBeforeList.Add(pointInfo.pointBefore);
+                    //NewPolygon.screenPoints.PtAfterList.Add(pointInfo.pointAfter);
 
                     Array.Resize(ref mShape, mShape.Length + 1);
                     mShape[mShape.GetUpperBound(0)] = NewPolygon;
 
                     NewPolygon = null;
                     line = new Point[2];
-
+                    infiniteY = Point.Empty;
+                    infinite3DY = null;
                     // var pt = e.Location;//pointInfo.foundPoint;
                     //var pt = Fetch2DPoint(pointInfo.p3d);
                     //   NewPolygon.screenPoints.PtList = new List<Point>();
@@ -155,7 +196,7 @@ namespace ThreeDApp2
 
                     //line[1] = pointInfo.foundPoint;//pt;
 
-                    BuildGraph();
+                    //BuildGraph();
                 }
             }
 
@@ -182,9 +223,25 @@ namespace ThreeDApp2
                             NewPolygon = new MyPolygon();
                             NewPolygon.Add(pointInfo.p3d);
                             NewPolygon.screenPoints.PtList.Add(pointInfo.foundPoint);
+
+                            infinite3DY = pointInfo.p3d;
+                            infinite3DY.Y += 300;
+                            infiniteY = Fetch2DPoint(infinite3DY);
+
+                            //NewPolygon.Add(pointInfo.p3dBefore);
+                            //NewPolygon.Add(pointInfo.p3dAfter);
+
+
+
+
+                            //NewPolygon.screenPoints.PtList.Add(pointInfo.pointBefore);
+                            //NewPolygon.screenPoints.PtList.Add(pointInfo.pointAfter);
+                            //NewPolygon.screenPoints.PtBeforeList.Add(pointInfo.pointBefore);
+                            //NewPolygon.screenPoints.PtAfterList.Add(pointInfo.pointAfter);
+
                             //var pt = pointInfo.foundPoint;//Fetch2DPoint(pointInfo.p3d);
-                            //NewPolygon.screenPoints.PtList = new List<Point>();
-                            //NewPolygon.screenPoints.PtList.Add(pt);
+                            ////NewPolygon.screenPoints.PtList = new List<Point>();
+                            ////NewPolygon.screenPoints.PtList.Add(pt);
                             // line[0] = pt;
                         }
 
@@ -304,17 +361,13 @@ namespace ThreeDApp2
             Point cursorPt = e.Location;
             Point foundPt = Point.Empty;
 
+            //while going thru each polygon
             for (int k = 0; k < mShape.Length; k++)
             {
 
-                // for (int i = 0; i < mShape[k].screenPoints.PtList.Count; i++)
-                // foundPt = mShape[k].screenPoints.PtList.Find(p =>
-                //  foundPt = mShape[k].screenPoints.PtList.FindIndex(p =>
+                //search thru its 2D points to find the cursors point
                 int index = mShape[k].screenPoints.PtList.FindIndex(p =>
-
                 {
-                    // Point p = mShape[k].screenPoints.PtList[i];
-                    // if (((cursorPt.X >= ((p.X + offsetWidth) - 10)) && (cursorPt.X <= ((p.X + offsetWidth) + 10))) && ((cursorPt.Y >= ((p.Y + offsetHeight) - 10)) && (cursorPt.Y <= ((p.Y + offsetHeight) + 10))))
                     if (PointInRange(cursorPt, p))
                     {
 
@@ -322,9 +375,8 @@ namespace ThreeDApp2
                         pointInfo = new PointInfo();
                         pointInfo.IsOnPoint = true;
                         pointInfo.foundPoint = foundPt;
-
-
-                        //textVal = "Seen!";
+                        //infiniteY.X = foundPt.X;
+                        //infiniteY.Y = foundPt.Y;
                         return true;
                     }
                     else
@@ -334,7 +386,7 @@ namespace ThreeDApp2
                         pointInfo.IsOnPoint = false;
                         pointInfo.foundPoint = Point.Empty;
                         pointInfo.p3d = null;
-                        //textVal = string.Empty;
+                        infiniteY = Point.Empty;
                         return false;
                     }
 
@@ -344,6 +396,19 @@ namespace ThreeDApp2
                 {
                     pointInfo.p3d = mShape[k].Absolute(index);
                     pointInfo.foundPointIndex = index;
+                    pointInfo.p3dBefore = index - 1 >= 0 ? mShape[k].Absolute(index - 1) : mShape[k].Absolute(0);
+                    pointInfo.p3dAfter = index + 1 < mShape[k].GetSize() ? mShape[k].Absolute(index + 1) : mShape[k].Absolute(mShape[k].GetSize() - 1);
+                    pointInfo.pointBefore = (index - 1 >= 0) ? mShape[k].screenPoints.PtList[index - 1] : mShape[k].screenPoints.PtList[0];
+                    pointInfo.pointAfter = (index + 1 < mShape[k].screenPoints.PtList.Count) ? mShape[k].screenPoints.PtList[index + 1] : mShape[k].screenPoints.PtList[mShape[k].screenPoints.PtList.Count - 1];
+
+                    //infinite3DY = defaultY3D;
+
+                    //infinite3DY.X = pointInfo.p3d.X;
+                    //infinite3DY.Z = pointInfo.p3d.Z;
+                    //infinite3DY.Y = pointInfo.p3d.Y + 300;
+
+                   
+
                     break;
                 }
             }
@@ -361,12 +426,14 @@ namespace ThreeDApp2
 
             if (NewPolygon != null)
             {
-                //   NewPolygon.screenPoints.PtList.Add(e.Location);
-                //line[1] = e.Location;
+
+
                 if (NewPolygon.screenPoints.PtList.Count == 1)
                 {
+                    //set line array as from existing point to cursor point
+
                     line[0] = NewPolygon.screenPoints.PtList[0];
-                    line[1] = new Point(e.Location.X - offsetWidth, e.Location.Y - offsetHeight);
+                    line[1] = new Point(e.Location.X - offsetWidth, e.Location.Y - offsetHeight); //offsetWidth and offsetHeight are translations from top left corner of screen
 
 
 
@@ -451,6 +518,36 @@ namespace ThreeDApp2
 
                 //screenPoints[i].PtList = ptList;
                 //mShape[i] = po;
+            }
+
+
+            if (infiniteY != Point.Empty)
+            {
+                if (infinite3DY != null)
+                {
+                    switch (axis)
+                    {
+                        case Axis.X:
+                            infinite3DY = Point3D.Translate(infinite3DY, shapeOrigin, point0);
+                            infinite3DY = Point3D.RotateX(infinite3DY, degrees);
+                            infinite3DY = Point3D.Translate(infinite3DY, point0, shapeOrigin);
+                            break;
+                        case Axis.Y:
+                            infinite3DY = Point3D.Translate(infinite3DY, shapeOrigin, point0);
+                            infinite3DY = Point3D.RotateY(infinite3DY, degrees);
+                            infinite3DY = Point3D.Translate(infinite3DY, point0, shapeOrigin);
+                            break;
+                        case Axis.Z:
+                            infinite3DY = Point3D.Translate(infinite3DY, shapeOrigin, point0);
+                            infinite3DY = Point3D.RotateZ(infinite3DY, degrees);
+                            infinite3DY = Point3D.Translate(infinite3DY, point0, shapeOrigin);
+                            break;
+                    }
+                    infiniteY = Fetch2DPoint(infinite3DY);
+                }
+
+
+
             }
 
             //Point3D[] pts = new Point3D[3];
@@ -602,6 +699,11 @@ namespace ThreeDApp2
                 {
                     g.DrawLine(Pens.Black, line[0], line[1]);
                 }
+
+                //if (infiniteY != Point.Empty)
+                //{
+                //    g.DrawLine(Pens.Red, line[0], infiniteY);
+                //}
             }
 
         }
@@ -635,7 +737,7 @@ namespace ThreeDApp2
         private void Form1_Load(object sender, EventArgs e)
         {
             //throw new NotImplementedException();
-            BuildGraph();
+            //BuildGraph();
         }
 
         private double dotProduct(double[] vect_A,
@@ -741,6 +843,48 @@ namespace ThreeDApp2
             Invalidate();
         }
 
+        void BuildGraph2()
+        {
+            List<int> verts = new List<int>();
+            List<Tuple<int, int>> edges = new List<Tuple<int, int>>();
+
+            int id = 0;
+            for (int k = 0; k < mShape.Length; k++)
+            {
+
+                var poly = mShape[k];
+                var total = k > 0 ? mShape[k - 1].GetSize() : 0;
+                int? firstId = null;
+
+
+                for (int j = 0; j < poly.GetSize(); j++)
+                {
+                    if (j == 0)
+                    {
+                        firstId = id;
+                    }
+                    verts.Add(id);
+                    pointRef.Add(id, poly[j]);
+                    shapeRef.Add(k, j);
+
+                    var totalId = id + total;
+                    //if(j+1 < poly.GetSize())
+                    if (j < (poly.GetSize() - 1))
+                    {
+                        edges.Add(Tuple.Create(id, totalId + 1));
+                    }
+                    else
+                    {
+                        edges.Add(Tuple.Create(id, firstId.Value));
+                    }
+                    //edges.Add(Tuple.Create(id, ));
+                    //var edges = new[] { Tuple.Create(1, 2) };
+                    id++;
+                }
+            }
+
+        }
+
         void BuildGraph()
         {
             //read vertices or nodes
@@ -749,7 +893,7 @@ namespace ThreeDApp2
             int g = 0;
             int max = 0;
 
-            foreach(var poly in mShape)
+            foreach (var poly in mShape)
             {
                 max += poly.GetSize();
             }
@@ -787,7 +931,7 @@ namespace ThreeDApp2
 
                         g++;
                     }
-                    
+
 
                 }
             }
@@ -845,8 +989,12 @@ namespace ThreeDApp2
     public class PointInfo
     {
         public Point3D p3d = null;
+        public Point3D p3dBefore = null;
+        public Point3D p3dAfter = null;
         public bool IsOnPoint = false;
         public Point foundPoint = Point.Empty;
+        public Point pointBefore = Point.Empty;
+        public Point pointAfter = Point.Empty;
         public int foundPointIndex = -1;
     }
     public class Graph<T>

@@ -11,8 +11,13 @@ namespace ThreeDApp2
         float EPSILON = 0.001f;
 		public Point3D Center = new Point3D(0,0,0);
 		public ShapeScreenPoints screenPoints = new ShapeScreenPoints();
-
-		public Polygon()
+        const float DEG2RAD = 0.0175f;           // converts degrees to radians
+        const float RAD2DEG = 57.2957795f;		 // ...and back again.
+        /*const float EPSILON = 0.001f;*/	 // used for REAL comparisons and stuff
+        const float PI = 3.1415926535898f;	 // pi
+        const float HALF_PI = PI / 2.0f;		 // pi/2
+        const float TWO_PI = PI * 2.0f;			 // pi*2
+        public Polygon()
         {
 
         }
@@ -23,6 +28,11 @@ namespace ThreeDApp2
 
             //ASSERT(index >= 0 && index<m_n);
             // return m_point[index];
+        }
+
+        public bool Contains(Point3D p)
+        {
+            return m_point.Contains(p);
         }
 
         public bool Add(Point3D P)
@@ -122,6 +132,28 @@ namespace ThreeDApp2
             return true;
         }
 
+        public bool Between(Point3D a, Point3D b, Point3D c)
+        // Returns TRUE iff (a,b,c) are collinear and point c lies on the closed segement ab.
+        {
+            if (!Colinear(a, b, c))
+                return false;
+
+            /* If ab not vertical, check betweenness on x; else on y. */
+            if (a.X != b.X)
+                return ((a.X <= c.X) && (c.X <= b.X)) ||
+                        ((a.X >= c.X) && (c.X >= b.X));
+            else
+                return ((a.Y <= c.Y) && (c.Y <= b.X)) ||
+                        ((a.Y >= c.Y) && (c.Y >= b.Y));
+        }
+
+        public bool Colinear(Point3D a, Point3D b, Point3D c)
+        {
+            // return (ABS(TriArea2(a, b, c)) < EPSILON);	// inefficient
+            float CrossZ = (b.X - a.X) * (c.Y - a.Y) - (c.X - a.X) * (b.Y - a.Y);
+            return (ABS(CrossZ) < EPSILON);
+        }
+
         public float ABS(float x)
         {
             return ((x) < D2Real(0.0) ? -(x) : (x));
@@ -130,11 +162,25 @@ namespace ThreeDApp2
         {
             return (float)x;
         }
-		//public int CompareTo(Polygon otherFace)
-		//{
-		//	return (int)(this.Center.Z - otherFace.Center.Z); //In order of which is closest to the screen
-		//}
-	}
+
+        public float Angle(Point3D p1, Point3D p2, Point3D p3)
+        // returns the angle (in degrees) between the 2 vectors formed from p2->p1, p2->p3.
+        {
+            double cosA;
+            Point3D v, u;
+
+            v = p2 - p1;
+            u = p3 - p2;
+
+            cosA = u * v / D2Real(Math.Sqrt((double)(u.Length2() * v.Length2())));
+            return D2Real(Math.Max(0.0, Math.Acos(cosA) * RAD2DEG));
+        }
+
+        //public int CompareTo(Polygon otherFace)
+        //{
+        //	return (int)(this.Center.Z - otherFace.Center.Z); //In order of which is closest to the screen
+        //}
+    }
 
 
 }
