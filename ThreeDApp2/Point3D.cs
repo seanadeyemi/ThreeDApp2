@@ -143,6 +143,15 @@ namespace ThreeDApp2
             return points3D;
         }
 
+		public static Point3D Move(Point3D pointFrom, Point3D pt2 )
+		{
+			double x = pointFrom.X + (pt2.X - pointFrom.X);
+			double y = pointFrom.Y + (pt2.Y - pointFrom.Y);
+			double z = pointFrom.Z + (pt2.Z - pointFrom.Z);
+
+			return new Point3D(x, y, z);
+		}
+
        public float Length2() { return (X * X + Y * Y + Z * Z); }
     }
 }

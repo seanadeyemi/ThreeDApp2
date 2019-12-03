@@ -17,6 +17,8 @@ namespace ThreeDApp2
 		Point[] line = new Point[2];
 		bool MouseIsDown = false;
 
+		List<RotationMap> rotationCache = new List<RotationMap>();
+
 
 		Point infiniteX = Point.Empty;
 		Point infiniteY = Point.Empty;
@@ -48,7 +50,7 @@ namespace ThreeDApp2
 		Point3D normalSample = new Point3D(0, 0, 0);
 		Dictionary<int, Point3D> pointRef = new Dictionary<int, Point3D>();
 		Dictionary<int, int> shapeRef = new Dictionary<int, int>();
-		Point3D defaultY3D = new Point3D(0, 300, 20);
+		Point3D defaultY3D = new Point3D(0, 10, 20);
 
 		int s = 10;
 
@@ -226,7 +228,7 @@ namespace ThreeDApp2
 		{
 			if (e.Button == MouseButtons.Left)
 			{
-				// if (panBtn.Checked)
+				 if (panBtn.Checked)
 				{
 					MouseIsDown = true;
 				}
@@ -236,12 +238,40 @@ namespace ThreeDApp2
 					{
 						if (pointInfo.IsOnPoint)
 						{
+
+
+							//List<RotationMap> cache = new List<RotationMap>(rotationCache);
+							//rotationCache.Clear();
+
 							NewPolygon = new MyPolygon();
 							NewPolygon.Add(pointInfo.p3d);
 							NewPolygon.screenPoints.PtList.Add(pointInfo.foundPoint);
 
 							infinite3DStartY = new Point3D(pointInfo.p3d.X, pointInfo.p3d.Y, pointInfo.p3d.Z);
-							infinite3DY = new Point3D(pointInfo.p3d.X, pointInfo.p3d.Y + 300, pointInfo.p3d.Z);
+							//infinite3DY = new Point3D(pointInfo.p3d.X, pointInfo.p3d.Y + 300, pointInfo.p3d.Z);
+
+
+							Point3D pt = new Point3D(infinite3DY.X, infinite3DY.Y, infinite3DY.Z);
+
+							Point3D ptTo = new Point3D(infinite3DStartY.X, infinite3DStartY.Y+10, infinite3DStartY.Z);
+
+							infinite3DY = Point3D.Move(pt, ptTo);
+
+
+
+
+
+
+							//var p3DY = new Point3D(pointInfo.p3d.X, pointInfo.p3d.Y + 300, pointInfo.p3d.Z);
+
+							//infinite3DY = Point3D.Move(pointInfo.p3d, )
+							//foreach (var rot in cache)
+							//{
+							//	// do something with entry.Value or entry.Key
+							//	//infinite3DY
+							//	infinite3DY = RotatePoint(infinite3DY, rot.axis, rot.degrees);
+
+							//}
 
 							infiniteY = Fetch2DPoint(infinite3DY);
 							infiniteStartY = pointInfo.foundPoint;
@@ -509,6 +539,7 @@ namespace ThreeDApp2
 							pt3d = Point3D.RotateX(pt3d, degrees);
 							rotPt3d = Point3D.Translate(pt3d, point0, shapeOrigin);
 							depth = rotPt3d.Z;
+							
 							break;
 						case Axis.Y:
 							pt3d = Point3D.Translate(pt3d, shapeOrigin, point0);
@@ -555,6 +586,8 @@ namespace ThreeDApp2
 							infinite3DY = Point3D.Translate(infinite3DY, shapeOrigin, point0);
 							infinite3DY = Point3D.RotateX(infinite3DY, degrees);
 							infinite3DY = Point3D.Translate(infinite3DY, point0, shapeOrigin);
+
+							rotationCache.Add(new RotationMap(axis, degrees));
 							break;
 						case Axis.Y:
 							infinite3DStartY = Point3D.Translate(infinite3DStartY, shapeOrigin, point0);
@@ -564,6 +597,8 @@ namespace ThreeDApp2
 							infinite3DY = Point3D.Translate(infinite3DY, shapeOrigin, point0);
 							infinite3DY = Point3D.RotateY(infinite3DY, degrees);
 							infinite3DY = Point3D.Translate(infinite3DY, point0, shapeOrigin);
+
+							rotationCache.Add(new RotationMap(axis, degrees));
 							break;
 						case Axis.Z:
 							infinite3DStartY = Point3D.Translate(infinite3DStartY, shapeOrigin, point0);
@@ -573,14 +608,13 @@ namespace ThreeDApp2
 							infinite3DY = Point3D.Translate(infinite3DY, shapeOrigin, point0);
 							infinite3DY = Point3D.RotateZ(infinite3DY, degrees);
 							infinite3DY = Point3D.Translate(infinite3DY, point0, shapeOrigin);
+
+							rotationCache.Add(new RotationMap(axis, degrees));
 							break;
 					}
 					infiniteY = Fetch2DPoint(infinite3DY);
 					infiniteStartY = Fetch2DPoint(infinite3DStartY);
 				}
-
-
-
 			}
 
 			//Point3D[] pts = new Point3D[3];
@@ -592,6 +626,44 @@ namespace ThreeDApp2
 
 
 		}
+		private Point3D RotatePoint(Point3D ptToRotate, Axis axis, double degrees)
+		{
+			Point3D pt3D = new Point3D(0,0,0);
+
+			if (ptToRotate != null)
+			{
+
+				switch (axis)
+				{
+					case Axis.X:
+						pt3D = Point3D.Translate(ptToRotate, shapeOrigin, point0);
+						pt3D = Point3D.RotateX(ptToRotate, degrees);
+						pt3D = Point3D.Translate(ptToRotate, point0, shapeOrigin);						
+
+						//rotationCache.Add(axis, degrees);
+						break;
+					case Axis.Y:
+						pt3D = Point3D.Translate(ptToRotate, shapeOrigin, point0);
+						pt3D = Point3D.RotateY(ptToRotate, degrees);
+						pt3D = Point3D.Translate(ptToRotate, point0, shapeOrigin);
+						
+						//rotationCache.Add(axis, degrees);
+						break;
+					case Axis.Z:
+						pt3D = Point3D.Translate(ptToRotate, shapeOrigin, point0);
+						pt3D = Point3D.RotateZ(ptToRotate, degrees);
+						pt3D = Point3D.Translate(ptToRotate, point0, shapeOrigin);
+						
+						//rotationCache.Add(axis, degrees);
+						break;
+				}
+
+			}
+
+				return pt3D;
+		}
+
+
 
 		private void Form1_KeyDown(object sender, KeyEventArgs e)
 		{
@@ -667,7 +739,83 @@ namespace ThreeDApp2
 						Invalidate();
 					}
 					break;
+
+				case Keys.E:
+					MoveShapes(Axis.Y, 1);					
+					Invalidate();
+					break;
+				case Keys.C:
+					MoveShapes(Axis.Y, -1);
+					Invalidate();
+					break;
+				case Keys.S:
+					MoveShapes(Axis.X, 1);
+					Invalidate();
+					break;
+				case Keys.F:
+					MoveShapes(Axis.X, -1);
+					Invalidate();
+					break;
+				case Keys.D:
+					if (ModifierKeys.HasFlag(Keys.Control))
+					{
+						MoveShapes(Axis.Z, -1);
+						Invalidate();
+					}
+					else
+					{
+						MoveShapes(Axis.Z, 1);
+						Invalidate();
+					}
+
+					break;
+
+
 			}
+		}
+
+		private void MoveShapes(Axis axis, int v)
+		{
+			for (int i = 0; i < mShape.Length; i++)
+			{
+				// Go thru each point
+				MyPolygon po = new MyPolygon();
+				List<Point> ptList = new List<Point>();
+				float depth = 0;
+
+				for (int j = 0; j < mShape[i].GetSize(); j++)
+				{
+					Point3D pt3d = mShape[i].Absolute(j);
+
+					//Point3D rotPt3d = new Point3D(0, 0, 0);
+					switch (axis)
+					{
+						case Axis.X:
+							pt3d.X += v;
+							depth = pt3d.Z;
+
+							break;
+						case Axis.Y:
+							pt3d.Y += v;
+							depth = pt3d.Z;
+							break;
+						case Axis.Z:
+							pt3d.Z += v;
+							depth = pt3d.Z;
+							break;
+					}
+
+
+					po.Add(pt3d);
+				}
+
+				Set2DPoints(po, ref ptList);
+				mShape[i] = po;
+				mShape[i].screenPoints.PtList = ptList;
+				mShape[i].Center.Z = depth;
+				
+			}
+
 		}
 
 		private void Form1_Paint(object sender, PaintEventArgs e)
@@ -683,7 +831,9 @@ namespace ThreeDApp2
 
 			if (infinite3DY != null)
 			{
-				g.DrawString($"infinite: X: {infinite3DY.X}, Y: {infinite3DY.Y}, Z: {infinite3DY.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 85f);
+				g.DrawString($"infinite start: X: {infinite3DStartY.X}, Y: {infinite3DStartY.Y}, Z: {infinite3DStartY.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 85f);
+				g.DrawString($"infinite end: X: {infinite3DY.X}, Y: {infinite3DY.Y}, Z: {infinite3DY.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 105f);
+				g.DrawString($"Point: X: {mShape[1][3].X}, Y: {mShape[1][3].Y}, Z: {mShape[1][3].Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 125f);
 
 			}
 
@@ -1075,6 +1225,18 @@ namespace ThreeDApp2
 				AdjacencyList[edge.Item2].Add(edge.Item1);
 			}
 		}
+	}
+
+	public class RotationMap
+	{
+		public RotationMap(Axis axis, double degrees)
+		{
+			this.axis = axis;
+			this.degrees = degrees;
+		}
+		public Axis axis { get; set; }
+		public double degrees { get; set; }
+
 	}
 }
 
