@@ -175,7 +175,7 @@ namespace ThreeDApp2
             return D2Real(Math.Max(0.0, Math.Acos(cosA) * RAD2DEG));
         }
 
-        bool PointIn(Point3D P)
+        public bool PointIn(Point3D P)
         // Tests if point within polygon, or on an edge or vertex, by shooting a ray along x axis
         {
             int j;

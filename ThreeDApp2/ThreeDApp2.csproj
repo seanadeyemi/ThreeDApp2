@@ -59,6 +59,7 @@
     <Compile Include="PathSNode.cs" />
     <Compile Include="Point3D.cs" />
     <Compile Include="Polygon.cs" />
+    <Compile Include="Polygon2D.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ShapeScreenPoints.cs" />
