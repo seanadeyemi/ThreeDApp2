@@ -13,22 +13,23 @@ namespace ThreeDApp2
 		MyPolygon[] mShape = new MyPolygon[3];
 		ShapeScreenPoints[] screenPoints = new ShapeScreenPoints[3];
 		PointInfo pointInfo = new PointInfo();
+		PointInfo pointInfoEnd = new PointInfo();
 		Color DefaultColor = Color.Gray;
 		Point[] line = new Point[2];
 		bool MouseIsDown = false;
 
 
 		Point infiniteX = Point.Empty;
-		Point infiniteY = Point.Empty;
+		Point infinite2DEndY = Point.Empty;
 		Point infiniteZ = Point.Empty;
 
 		Point infiniteStartX = Point.Empty;
-		Point infiniteStartY = Point.Empty;
+		Point infinite2DStartY = Point.Empty;
 		Point infiniteStartZ = Point.Empty;
 
 
 
-		Point3D infinite3DY = null;
+		Point3D infinite3DEndY = null;
 		Point3D infinite3DX = null;
 		Point3D infinite3DZ = null;
 
@@ -110,11 +111,11 @@ namespace ThreeDApp2
 
 
 			infinite3DStartY = new Point3D(0, 0, 20);
-			infiniteStartY = Fetch2DPoint(infinite3DStartY);
+			infinite2DStartY = Fetch2DPoint(infinite3DStartY);
 
 
-			infinite3DY = new Point3D(defaultY3D.X, defaultY3D.Y, defaultY3D.Z);
-			infiniteY = Fetch2DPoint(infinite3DY);
+			infinite3DEndY = new Point3D(0, 10, 20);
+			infinite2DEndY = Fetch2DPoint(infinite3DEndY);
 
 
 
@@ -156,7 +157,12 @@ namespace ThreeDApp2
 			//mShape[1].mPosition.z = 30;
 			//mShape[2].mPosition.z = 50;
 
-		}
+            pointInfo.p3d = new Point3D(0, 0, 20);
+            pointInfo.foundPoint = Fetch2DPoint(pointInfo.p3d);
+
+            pointInfoEnd.p3d = new Point3D(0, 10, 20);
+            pointInfoEnd.foundPoint = Fetch2DPoint(pointInfoEnd.p3d);
+        }
 
 		private void Form1_MouseUp(object sender, MouseEventArgs e)
 		{
@@ -226,7 +232,7 @@ namespace ThreeDApp2
 		{
 			if (e.Button == MouseButtons.Left)
 			{
-				// if (panBtn.Checked)
+				 if (panBtn.Checked)
 				{
 					MouseIsDown = true;
 				}
@@ -240,11 +246,55 @@ namespace ThreeDApp2
 							NewPolygon.Add(pointInfo.p3d);
 							NewPolygon.screenPoints.PtList.Add(pointInfo.foundPoint);
 
-							infinite3DStartY = new Point3D(pointInfo.p3d.X, pointInfo.p3d.Y, pointInfo.p3d.Z);
-							infinite3DY = new Point3D(pointInfo.p3d.X, pointInfo.p3d.Y + 300, pointInfo.p3d.Z);
+                            //Point3D oldStartY = null;
+                            //if(infinite3DStartY != null)
+                            //{
+                            //    oldStartY = new Point3D(infinite3DStartY.X, infinite3DStartY.Y, infinite3DStartY.Z);
+                            //}
+                            
 
-							infiniteY = Fetch2DPoint(infinite3DY);
-							infiniteStartY = pointInfo.foundPoint;
+							//infinite3DStartY = new Point3D(pointInfo.p3d.X, pointInfo.p3d.Y, pointInfo.p3d.Z);
+							//infinite3DY = new Point3D(pointInfo.p3d.X, pointInfo.p3d.Y + 300, pointInfo.p3d.Z);
+
+                            
+
+
+
+							//infinite2DStartY = pointInfo.foundPoint;
+							
+
+       //                    infinite3DStartY = Point3D.MoveObject(infinite3DStartY, pointInfo.p3d);
+
+
+                            Vector vDiff = Point3D.Diff(pointInfo.p3d, infinite3DStartY);
+
+                            var oldPt1Start = new Point3D(infinite3DEndY.X, infinite3DEndY.Y, infinite3DEndY.Z);
+
+                            var newPtend = oldPt1Start.Translate(vDiff);
+
+                            infinite3DEndY.X = newPtend.X;
+                            infinite3DEndY.Y = newPtend.Y;
+                            infinite3DEndY.Z = newPtend.Z;
+
+
+                            infinite3DStartY.X = pointInfo.p3d.X;
+                            infinite3DStartY.Y = pointInfo.p3d.Y;
+                            infinite3DStartY.Z = pointInfo.p3d.Z;
+
+                            infinite2DStartY =  Fetch2DPoint(infinite3DStartY);
+                            infinite2DEndY =  Fetch2DPoint(infinite3DEndY);
+
+
+
+                            //infinite3DEndY = Point3D.MoveObject(infinite3DEndY, new Point3D(pointInfo.p3d.X, pointInfo.p3d.Y + 10, pointInfo.p3d.Z));
+
+
+                            //infinite2DEndY = Fetch2DPoint(infinite3DEndY);
+                            //if(oldStartY != null)
+                            //{
+                            //    var result = Point3D.distance(oldStartY, infinite3DStartY);
+                            //    pt3d = Point3D.Translate(pt3d, shapeOrigin, point0);
+                            //}
 
 							//NewPolygon.Add(pointInfo.p3dBefore);
 							//NewPolygon.Add(pointInfo.p3dAfter);
@@ -390,7 +440,7 @@ namespace ThreeDApp2
 					{
 
 						foundPt = p;
-						pointInfo = new PointInfo();
+						//pointInfo = new PointInfo();
 						pointInfo.IsOnPoint = true;
 						pointInfo.foundPoint = foundPt;
 						//infiniteY.X = foundPt.X;
@@ -400,10 +450,10 @@ namespace ThreeDApp2
 					else
 					{
 						foundPt = Point.Empty;
-						pointInfo = new PointInfo();
+						//pointInfo = new PointInfo();
 						pointInfo.IsOnPoint = false;
-						pointInfo.foundPoint = Point.Empty;
-						pointInfo.p3d = null;
+						//pointInfo.foundPoint = Point.Empty;
+						//pointInfo.p3d = null;
 						//infiniteY = Point.Empty;
 						return false;
 					}
@@ -484,8 +534,8 @@ namespace ThreeDApp2
 				Set2DPoints(mShape[i], ref mShape[i].screenPoints.PtList);
 			}
 
-			Set2DPoint(infinite3DStartY, ref infiniteStartY);
-			Set2DPoint(infinite3DY, ref infiniteY);
+			Set2DPoint(infinite3DStartY, ref infinite2DStartY);
+			Set2DPoint(infinite3DEndY, ref infinite2DEndY);
 
 		}
 		private void RotateShapes(Axis axis, double degrees)
@@ -541,9 +591,9 @@ namespace ThreeDApp2
 			}
 
 
-			if (infiniteY != Point.Empty)
+			if (infinite2DEndY != Point.Empty)
 			{
-				if (infinite3DY != null)
+				if (infinite3DEndY != null)
 				{
 					switch (axis)
 					{
@@ -552,31 +602,56 @@ namespace ThreeDApp2
 							infinite3DStartY = Point3D.RotateX(infinite3DStartY, degrees);
 							infinite3DStartY = Point3D.Translate(infinite3DStartY, point0, shapeOrigin);
 
-							infinite3DY = Point3D.Translate(infinite3DY, shapeOrigin, point0);
-							infinite3DY = Point3D.RotateX(infinite3DY, degrees);
-							infinite3DY = Point3D.Translate(infinite3DY, point0, shapeOrigin);
-							break;
+							infinite3DEndY = Point3D.Translate(infinite3DEndY, shapeOrigin, point0);
+							infinite3DEndY = Point3D.RotateX(infinite3DEndY, degrees);
+							infinite3DEndY = Point3D.Translate(infinite3DEndY, point0, shapeOrigin);
+
+                            pointInfo.p3d = Point3D.Translate(pointInfo.p3d, shapeOrigin, point0);
+                            pointInfo.p3d = Point3D.RotateX(pointInfo.p3d, degrees);
+                            pointInfo.p3d = Point3D.Translate(pointInfo.p3d, point0, shapeOrigin);
+
+                            pointInfoEnd.p3d = Point3D.Translate(pointInfoEnd.p3d, shapeOrigin, point0);
+                            pointInfoEnd.p3d = Point3D.RotateX(pointInfoEnd.p3d, degrees);
+                            pointInfoEnd.p3d = Point3D.Translate(pointInfoEnd.p3d, point0, shapeOrigin);
+                            break;
 						case Axis.Y:
 							infinite3DStartY = Point3D.Translate(infinite3DStartY, shapeOrigin, point0);
 							infinite3DStartY = Point3D.RotateY(infinite3DStartY, degrees);
 							infinite3DStartY = Point3D.Translate(infinite3DStartY, point0, shapeOrigin);
 
-							infinite3DY = Point3D.Translate(infinite3DY, shapeOrigin, point0);
-							infinite3DY = Point3D.RotateY(infinite3DY, degrees);
-							infinite3DY = Point3D.Translate(infinite3DY, point0, shapeOrigin);
-							break;
+							infinite3DEndY = Point3D.Translate(infinite3DEndY, shapeOrigin, point0);
+							infinite3DEndY = Point3D.RotateY(infinite3DEndY, degrees);
+							infinite3DEndY = Point3D.Translate(infinite3DEndY, point0, shapeOrigin);
+
+                            pointInfo.p3d = Point3D.Translate(pointInfo.p3d, shapeOrigin, point0);
+                            pointInfo.p3d = Point3D.RotateY(pointInfo.p3d, degrees);
+                            pointInfo.p3d = Point3D.Translate(pointInfo.p3d, point0, shapeOrigin);
+
+                            pointInfoEnd.p3d = Point3D.Translate(pointInfoEnd.p3d, shapeOrigin, point0);
+                            pointInfoEnd.p3d = Point3D.RotateY(pointInfoEnd.p3d, degrees);
+                            pointInfoEnd.p3d = Point3D.Translate(pointInfoEnd.p3d, point0, shapeOrigin);
+                            break;
 						case Axis.Z:
 							infinite3DStartY = Point3D.Translate(infinite3DStartY, shapeOrigin, point0);
 							infinite3DStartY = Point3D.RotateZ(infinite3DStartY, degrees);
 							infinite3DStartY = Point3D.Translate(infinite3DStartY, point0, shapeOrigin);
 
-							infinite3DY = Point3D.Translate(infinite3DY, shapeOrigin, point0);
-							infinite3DY = Point3D.RotateZ(infinite3DY, degrees);
-							infinite3DY = Point3D.Translate(infinite3DY, point0, shapeOrigin);
-							break;
+							infinite3DEndY = Point3D.Translate(infinite3DEndY, shapeOrigin, point0);
+							infinite3DEndY = Point3D.RotateZ(infinite3DEndY, degrees);
+							infinite3DEndY = Point3D.Translate(infinite3DEndY, point0, shapeOrigin);
+
+                            pointInfo.p3d = Point3D.Translate(pointInfo.p3d, shapeOrigin, point0);
+                            pointInfo.p3d = Point3D.RotateZ(pointInfo.p3d, degrees);
+                            pointInfo.p3d = Point3D.Translate(pointInfo.p3d, point0, shapeOrigin);
+
+                            pointInfoEnd.p3d = Point3D.Translate(pointInfoEnd.p3d, shapeOrigin, point0);
+                            pointInfoEnd.p3d = Point3D.RotateZ(pointInfoEnd.p3d, degrees);
+                            pointInfoEnd.p3d = Point3D.Translate(pointInfoEnd.p3d, point0, shapeOrigin);
+                            break;
 					}
-					infiniteY = Fetch2DPoint(infinite3DY);
-					infiniteStartY = Fetch2DPoint(infinite3DStartY);
+					infinite2DEndY = Fetch2DPoint(infinite3DEndY);
+					infinite2DStartY = Fetch2DPoint(infinite3DStartY);
+                    pointInfo.foundPoint = Fetch2DPoint(pointInfo.p3d);
 				}
 
 
@@ -592,6 +667,34 @@ namespace ThreeDApp2
 
 
 		}
+
+        private void RotatePoint(ref Point Pt2d, ref Point3D point3D, Axis axis, double degrees)
+        {
+            switch (axis)
+            {
+                case Axis.X:                  
+
+                    point3D = Point3D.Translate(point3D, shapeOrigin, point0);
+                    point3D = Point3D.RotateX(point3D, degrees);
+                    point3D = Point3D.Translate(point3D, point0, shapeOrigin);
+                    break;
+                case Axis.Y:                    
+
+                    point3D = Point3D.Translate(point3D, shapeOrigin, point0);
+                    point3D = Point3D.RotateY(point3D, degrees);
+                    point3D = Point3D.Translate(point3D, point0, shapeOrigin);
+                    break;
+                case Axis.Z:
+
+                    point3D = Point3D.Translate(point3D, shapeOrigin, point0);
+                    point3D = Point3D.RotateZ(point3D, degrees);
+                    point3D = Point3D.Translate(point3D, point0, shapeOrigin);
+                    break;
+            }
+            Pt2d = Fetch2DPoint(point3D);
+            
+        }
+
 
 		private void Form1_KeyDown(object sender, KeyEventArgs e)
 		{
@@ -659,16 +762,21 @@ namespace ThreeDApp2
 					if (ModifierKeys.HasFlag(Keys.Control))
 					{
 						RotateShapes(Axis.Z, -10);
-						Invalidate();
+                        infinite3DEndY = Point3D.MoveObject(infinite3DEndY, new Point3D(pointInfoEnd.p3d.X, pointInfoEnd.p3d.Y, pointInfoEnd.p3d.Z));
+                        infinite2DEndY = Fetch2DPoint(infinite3DEndY);
+                        Invalidate();
 					}
 					else
 					{
 						RotateShapes(Axis.Z, 10);
-						Invalidate();
+                        infinite3DEndY = Point3D.MoveObject(infinite3DEndY, new Point3D(pointInfoEnd.p3d.X, pointInfoEnd.p3d.Y, pointInfoEnd.p3d.Z));
+                        infinite2DEndY = Fetch2DPoint(infinite3DEndY);
+                        Invalidate();
 					}
 					break;
 			}
-		}
+           
+        }
 
 		private void Form1_Paint(object sender, PaintEventArgs e)
 		{
@@ -681,9 +789,9 @@ namespace ThreeDApp2
 			g.DrawString($"mouse pos: {textVal}", SystemFonts.DefaultFont, Brushes.Black, 5f, 45f);
 			g.DrawString($"normal: X: {normalSample.X}, Y: {normalSample.Y}, Z: {normalSample.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 65f);
 
-			if (infinite3DY != null)
+			if (infinite3DEndY != null)
 			{
-				g.DrawString($"infinite: X: {infinite3DY.X}, Y: {infinite3DY.Y}, Z: {infinite3DY.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 85f);
+				g.DrawString($"infinite: X: {infinite3DEndY.X}, Y: {infinite3DEndY.Y}, Z: {infinite3DEndY.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 85f);
 
 			}
 
@@ -743,9 +851,9 @@ namespace ThreeDApp2
 
 			}
 
-			if (infiniteY != Point.Empty)
+			if (infinite2DEndY != Point.Empty)
 			{
-				g.DrawLine(Pens.Red, infiniteStartY, infiniteY);
+				g.DrawLine(Pens.Red, infinite2DStartY, infinite2DEndY);
 			}
 
 		}
@@ -787,9 +895,11 @@ namespace ThreeDApp2
 
 		private void Form1_Load(object sender, EventArgs e)
 		{
-			//throw new NotImplementedException();
-			//BuildGraph();
-		}
+            //throw new NotImplementedException();
+            //BuildGraph();
+            pointInfo.p3d = new Point3D(0, 0, 20);
+            pointInfo.foundPoint = Fetch2DPoint(pointInfo.p3d);
+        }
 
 		private double dotProduct(double[] vect_A,
 						   double[] vect_B)
@@ -1039,7 +1149,7 @@ namespace ThreeDApp2
 
 	public class PointInfo
 	{
-		public Point3D p3d = null;
+        public Point3D p3d = new Point3D(0, 0, 20);
 		public Point3D p3dBefore = null;
 		public Point3D p3dAfter = null;
 		public bool IsOnPoint = false;

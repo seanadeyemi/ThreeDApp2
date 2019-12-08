@@ -9,6 +9,7 @@ namespace ThreeDApp2
     public class Point3D
     {
         public float X, Y, Z;
+        public const float EPSILON = 0.001f;	
         public Point3D(double v1, double v2, double v3)
         {
             X = D2Real(v1);
@@ -20,6 +21,8 @@ namespace ThreeDApp2
         {
             return new Point3D(A.X + P.X, A.Y + P.Y, A.Z + P.Z);
         }
+
+      
 
         public static Point3D operator - (Point3D A, Point3D P)
         {
@@ -106,6 +109,46 @@ namespace ThreeDApp2
             return points3D;
         }
 
+        public static Point3D MoveObject(Point3D fromPoint, Point3D position2)
+        {
+            
+            float x = fromPoint.X + (position2.X - fromPoint.X);
+            float y = fromPoint.Y + (position2.Y - fromPoint.Y);
+            float z = fromPoint.Z + (position2.Z - fromPoint.Z);
+            return new Point3D(x,y,z);
+        }
+
+        public Point3D Translate(Vector v)
+        {
+            Point3D pt3d = this;
+            return pt3d + v;
+        }
+
+       public static bool Between(Point3D a, Point3D b, Point3D c)
+        // Returns TRUE iff (a,b,c) are collinear and point c lies on the closed segement ab.
+        {
+            var col = Colinear(a, b, c);
+            if (!col)
+                return false;
+
+            /* If ab not vertical, check betweenness on x; else on y. */
+            if (a.X != b.X)
+                return ((a.X <= c.X) && (c.X <= b.X)) ||
+                        ((a.X >= c.X) && (c.X >= b.X));
+            else
+                return ((a.Y <= c.Y) && (c.Y <= b.Y)) ||
+                        ((a.Y >= c.Y) && (c.Y >= b.Y));
+        }
+
+        public static bool Colinear(Point3D a, Point3D b, Point3D c)
+        {
+            // return (ABS(TriArea2(a, b, c)) < EPSILON);	// inefficient
+            float CrossZ = (b.X - a.X) * (c.Y - a.Y) - (c.X - a.X) * (b.Y - a.Y);
+            return (Math.Abs(CrossZ) < EPSILON);
+        }
+
+     
+
         //These are to make the above functions workable with arrays of 3D points
         public static Point3D[] RotateX(Point3D[] points3D, double degrees)
         {
@@ -143,7 +186,27 @@ namespace ThreeDApp2
             return points3D;
         }
 
-       public float Length2() { return (X * X + Y * Y + Z * Z); }
+       public float Length2()
+        {
+            return (X * X + Y * Y + Z * Z);
+        }
+
+        public static float distance (Point3D pt1, Point3D pt2)
+        {
+            return (float)Math.Sqrt(Math.Pow(pt1.X - pt2.X, 2) + Math.Pow(pt1.Y - pt2.Y, 2) + Math.Pow(pt1.Z - pt2.Z, 2));
+                
+        }
+
+        public static Vector Diff(Point3D farPt, Point3D nearPt)
+        {
+            Vector vector = new Vector(0, 0, 0);
+            vector.X = farPt.X - nearPt.X;
+            vector.Y = farPt.Y - nearPt.Y;
+            vector.Z = farPt.Z - nearPt.Z;
+
+            return vector;
+
+        }
     }
 }
 

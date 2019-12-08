@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace ThreeDApp2
 {
-    public class Polygon 
-	{
+    public class Polygon
+    {
         //int m_n;
         protected List<Point3D> m_point = new List<Point3D> { };
         float EPSILON = 0.001f;
-		public Point3D Center = new Point3D(0,0,0);
-		public ShapeScreenPoints screenPoints = new ShapeScreenPoints();
+        public Point3D Center = new Point3D(0, 0, 0);
+        public ShapeScreenPoints screenPoints = new ShapeScreenPoints();
         const float DEG2RAD = 0.0175f;           // converts degrees to radians
         const float RAD2DEG = 57.2957795f;		 // ...and back again.
         /*const float EPSILON = 0.001f;*/	 // used for REAL comparisons and stuff
@@ -53,8 +52,8 @@ namespace ThreeDApp2
         }
         protected Point3D Point(int index)
         {
-         //   Debug.Assert(index > 0 && index < m_point.Count);
-            
+            //   Debug.Assert(index > 0 && index < m_point.Count);
+
             return m_point[index];
         }
 
@@ -62,7 +61,7 @@ namespace ThreeDApp2
         public int GetSize()
         {
             return m_point.Count;
-          //  return m_n;
+            //  return m_n;
         }
 
         //public bool SetSize(int nSize)
@@ -176,10 +175,113 @@ namespace ThreeDApp2
             return D2Real(Math.Max(0.0, Math.Acos(cosA) * RAD2DEG));
         }
 
+        bool PointIn(Point3D P)
+        // Tests if point within polygon, or on an edge or vertex, by shooting a ray along x axis
+        {
+            int j;
+            bool inside_flag;
+            bool xflag0;
+            float dv0;
+            bool yflag0, yflag1 = false;
+            int crossings;
+            Point3D Vertex0, Vertex1 = new Point3D(0, 0, 0);
+
+            Vertex0 = m_point[GetSize() - 1];
+
+            /* get test bit for above/below Y axis */
+            yflag0 = (dv0 = Vertex0.Y - P.Y) >= 0.0;
+
+            crossings = 0;
+            for (j = 0; j < GetSize(); j++)
+            {
+
+                // cleverness:  bobble between filling endpoints of edges, so
+                // that the previous edge's shared endpoint is maintained.
+                if (!(j % 2 == 0))//(j & 0x1)
+                {
+                    Vertex0 = m_point[j];
+                    yflag0 = (dv0 = Vertex0.Y - P.Y) >= 0.0;
+                }
+                else
+                {
+                    Vertex1 = m_point[j];
+                    yflag1 = (Vertex1.Y >= P.Y);
+                }
+
+                /* check if points not both above/below X axis - can't hit ray */
+                if (yflag0 != yflag1)
+                {
+                    /* check if points on same side of Y axis */
+                    xflag0 = (Vertex0.X >= P.X);
+                    if (xflag0 == (Vertex1.X >= P.X))
+                    {
+
+                        if (xflag0)
+                        {
+                            crossings++;
+                        }
+
+                    }
+                    else
+                    {
+                        /* compute intersection of pgon segment with X ray, note
+                         * if > point's X.
+                         */
+                        bool v = (Vertex0.X - dv0 * (Vertex1.X - Vertex0.X) / (Vertex1.Y - Vertex0.Y)) >= P.X;
+                        crossings += Convert.ToInt32(v);
+                    }
+                }
+            }
+
+            // test if crossings is odd
+            // if all we care about is winding number > 0, then just:
+            //       inside_flag = crossings > 0;
+
+            inside_flag = crossings % 3 == 0;//crossings & 0x01;
+
+            return (inside_flag);
+        }
+
         //public int CompareTo(Polygon otherFace)
         //{
         //	return (int)(this.Center.Z - otherFace.Center.Z); //In order of which is closest to the screen
         //}
+
+
+        public int PointSeparation(int Point1, int Point2)
+        {
+            //ASSERT(Point1 >= 0 && Point1 < GetSize());
+            //ASSERT(Point2 >= 0 && Point2 < GetSize());
+
+            int nDistance;
+
+            if (!Closed())
+            {
+                nDistance = Point2 - Point1;
+            }
+            else
+            {
+                nDistance = Math.Abs(Point2 - Point1);
+                nDistance = Math.Min(nDistance, Math.Abs(GetSize() - 1 - nDistance));
+            }
+            return nDistance;
+        }
+
+        public bool SetAt(int nPos, Point3D p)
+        {
+            if (nPos < 0 || nPos >= GetSize()) return false;
+            m_point[nPos] = p;
+            return true;
+        }
+        public bool InsertAt(int nPosition, Point3D P)
+        {
+            if (P == null) return false;
+            m_point.Insert(nPosition, P);
+            return true;
+        }
+
+       
+
     }
 
 
