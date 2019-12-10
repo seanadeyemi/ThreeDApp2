@@ -16,6 +16,9 @@ namespace ThreeDApp2
         PointInfo pointInfoEnd = new PointInfo();
         Color DefaultColor = Color.Gray;
         Point[] line = new Point[2];
+
+        int ptCount = -1;
+
         bool MouseIsDown = false;
         bool inBetween = false;
 
@@ -249,24 +252,7 @@ namespace ThreeDApp2
                             NewPolygon.Add(pointInfo.p3d);
                             NewPolygon.screenPoints.PtList.Add(pointInfo.foundPoint);
 
-                            //Point3D oldStartY = null;
-                            //if(infinite3DStartY != null)
-                            //{
-                            //    oldStartY = new Point3D(infinite3DStartY.X, infinite3DStartY.Y, infinite3DStartY.Z);
-                            //}
-
-
-                            //infinite3DStartY = new Point3D(pointInfo.p3d.X, pointInfo.p3d.Y, pointInfo.p3d.Z);
-                            //infinite3DY = new Point3D(pointInfo.p3d.X, pointInfo.p3d.Y + 300, pointInfo.p3d.Z);
-
-
-
-
-
-                            //infinite2DStartY = pointInfo.foundPoint;
-
-
-                            //                    infinite3DStartY = Point3D.MoveObject(infinite3DStartY, pointInfo.p3d);
+      
 
 
                             Vector vDiff = Point3D.Diff(pointInfo.p3d, infinite3DStartY);
@@ -289,31 +275,7 @@ namespace ThreeDApp2
 
 
 
-                            //infinite3DEndY = Point3D.MoveObject(infinite3DEndY, new Point3D(pointInfo.p3d.X, pointInfo.p3d.Y + 10, pointInfo.p3d.Z));
-
-
-                            //infinite2DEndY = Fetch2DPoint(infinite3DEndY);
-                            //if(oldStartY != null)
-                            //{
-                            //    var result = Point3D.distance(oldStartY, infinite3DStartY);
-                            //    pt3d = Point3D.Translate(pt3d, shapeOrigin, point0);
-                            //}
-
-                            //NewPolygon.Add(pointInfo.p3dBefore);
-                            //NewPolygon.Add(pointInfo.p3dAfter);
-
-
-
-
-                            //NewPolygon.screenPoints.PtList.Add(pointInfo.pointBefore);
-                            //NewPolygon.screenPoints.PtList.Add(pointInfo.pointAfter);
-                            //NewPolygon.screenPoints.PtBeforeList.Add(pointInfo.pointBefore);
-                            //NewPolygon.screenPoints.PtAfterList.Add(pointInfo.pointAfter);
-
-                            //var pt = pointInfo.foundPoint;//Fetch2DPoint(pointInfo.p3d);
-                            ////NewPolygon.screenPoints.PtList = new List<Point>();
-                            ////NewPolygon.screenPoints.PtList.Add(pt);
-                            // line[0] = pt;
+                           
                         }
 
 
@@ -432,22 +394,17 @@ namespace ThreeDApp2
             Point cursorPt = e.Location;
             Point foundPt = Point.Empty;
 
-
+            
 
             for (int j = 0; j < mShape.Length; j++)
             {
                 var poly = mShape[j];
 
                 Polygon2D p2d = new Polygon2D();
-                //for (int d = 0; d < poly.screenPoints.PtList.Count; d++)
-                //{
-                //    p2d.Add(poly.screenPoints.PtList[d]);
-
-                //}
 
 
                 Point[] pts = poly.screenPoints.PtList.ToArray();
-               // pts.ForEach(x => { x.X += offsetWidth; x.Y += offsetHeight; });
+              
                for(int g=0; g < pts.Length; g++)
                 {
                     pts[g].X += offsetWidth;
@@ -513,18 +470,7 @@ namespace ThreeDApp2
                 {
                     pointInfo.p3d = mShape[k].Absolute(index);
                     pointInfo.foundPointIndex = index;
-                    //pointInfo.p3dBefore = index - 1 >= 0 ? mShape[k].Absolute(index - 1) : mShape[k].Absolute(0);
-                    //pointInfo.p3dAfter = index + 1 < mShape[k].GetSize() ? mShape[k].Absolute(index + 1) : mShape[k].Absolute(mShape[k].GetSize() - 1);
-                    //pointInfo.pointBefore = (index - 1 >= 0) ? mShape[k].screenPoints.PtList[index - 1] : mShape[k].screenPoints.PtList[0];
-                    //pointInfo.pointAfter = (index + 1 < mShape[k].screenPoints.PtList.Count) ? mShape[k].screenPoints.PtList[index + 1] : mShape[k].screenPoints.PtList[mShape[k].screenPoints.PtList.Count - 1];
-
-                    //infinite3DY = defaultY3D;
-
-                    //infinite3DY.X = pointInfo.p3d.X;
-                    //infinite3DY.Z = pointInfo.p3d.Z;
-                    //infinite3DY.Y = pointInfo.p3d.Y + 300;
-
-
+                   ptCount = mShape[k].PointSeparation(index, mShape[k].GetSize() - 1);
 
                     break;
                 }
@@ -597,6 +543,33 @@ namespace ThreeDApp2
             Set2DPoint(infinite3DStartY, ref infinite2DStartY);
             Set2DPoint(infinite3DEndY, ref infinite2DEndY);
 
+        }
+        private void RotateCamera(Axis axis, double degrees)
+        {
+            float depth = 0;
+            switch (axis)
+            {
+                case Axis.X:
+                    mCamera = Point3D.Translate(mCamera, shapeOrigin, point0);
+                    mCamera = Point3D.RotateX(mCamera, degrees);
+                    mCamera = Point3D.Translate(mCamera, point0, shapeOrigin);
+                    depth = mCamera.Z;
+                    break;
+                case Axis.Y:
+                    mCamera = Point3D.Translate(mCamera, shapeOrigin, point0);
+                    mCamera = Point3D.RotateY(mCamera, degrees);
+                    mCamera = Point3D.Translate(mCamera, point0, shapeOrigin);
+                    //rotPt3d = Point3D.RotateY(pt3d, degrees);
+                    depth = mCamera.Z;
+                    break;
+                case Axis.Z:
+                    //rotPt3d = Point3D.RotateZ(pt3d, degrees);
+                    mCamera = Point3D.Translate(mCamera, shapeOrigin, point0);
+                    mCamera = Point3D.RotateZ(mCamera, degrees);
+                    mCamera = Point3D.Translate(mCamera, point0, shapeOrigin);
+                    depth = mCamera.Z;
+                    break;
+            }
         }
         private void RotateShapes(Axis axis, double degrees)
         {
@@ -954,6 +927,7 @@ namespace ThreeDApp2
            // g.DrawString($"Is in between: {inBetween}", SystemFonts.DefaultFont, Brushes.Black, 5f, 105f);
             g.DrawString($"Is in between: {inBetween}", SystemFonts.DefaultFont, Brushes.Black, 5f, 105f);
             g.DrawString($"Is in polygon: {polyData.PtInPoly}", SystemFonts.DefaultFont, Brushes.Black, 5f, 125f);
+            g.DrawString($"point cout: {ptCount}", SystemFonts.DefaultFont, Brushes.Black, 5f, 145f);
 
         }
 
@@ -1029,9 +1003,14 @@ namespace ThreeDApp2
                 var shadeVal = dotProduct(new double[] { unitNormal.X, unitNormal.Y, unitNormal.Z }, new double[] { lightPoint.X, lightPoint.Y, lightPoint.Z });
                 shadeVal *= 255;
                 var shade = Convert.ToInt32(shadeVal);
+                shade *= 2;
                 if (shade < 0)
                 {
                     shade = 0;
+                }
+                if(shade > 255)
+                {
+                    shade = 255;
                 }
 
                 gr.DrawString(shadeVal.ToString() + $" {lightPoint.X}, {lightPoint.Y}, {lightPoint.Z}", SystemFonts.DefaultFont, Brushes.Black, new PointF(5f, 55f));
@@ -1197,6 +1176,34 @@ namespace ThreeDApp2
             }
 
 
+        }
+
+        private void leftViewBtn_Click(object sender, EventArgs e)
+        {
+            RotateCamera(Axis.Y, 10);
+            Update2dPoints();
+            Invalidate();
+        }
+
+        private void topViewBtn_Click(object sender, EventArgs e)
+        {
+            RotateCamera(Axis.X, 10);
+            Update2dPoints();
+            Invalidate();
+        }
+
+        private void rightViewBtn_Click(object sender, EventArgs e)
+        {
+            RotateCamera(Axis.Z, 10);
+            Update2dPoints();
+            Invalidate();
+        }
+
+        private void bottomViewBtn_Click(object sender, EventArgs e)
+        {
+            RotateCamera(Axis.X, -10);
+            Update2dPoints();
+            Invalidate();
         }
 
         public Func<T, IEnumerable<T>> ShortestPathFunction<T>(Graph<T> graph, T start)

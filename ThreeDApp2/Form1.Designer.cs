@@ -40,10 +40,10 @@
             this.frontViewBtn = new System.Windows.Forms.ToolStripButton();
             this.leftViewBtn = new System.Windows.Forms.ToolStripButton();
             this.toolStripButton8 = new System.Windows.Forms.ToolStripButton();
+            this.rightViewBtn = new System.Windows.Forms.ToolStripButton();
+            this.bottomViewBtn = new System.Windows.Forms.ToolStripButton();
             this.drawBtn = new System.Windows.Forms.ToolStripButton();
             this.toolStripButton11 = new System.Windows.Forms.ToolStripButton();
-            this.toolStripButton1 = new System.Windows.Forms.ToolStripButton();
-            this.toolStripButton2 = new System.Windows.Forms.ToolStripButton();
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -60,8 +60,8 @@
             this.frontViewBtn,
             this.leftViewBtn,
             this.toolStripButton8,
-            this.toolStripButton1,
-            this.toolStripButton2,
+            this.rightViewBtn,
+            this.bottomViewBtn,
             this.drawBtn,
             this.toolStripButton11});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
@@ -131,7 +131,8 @@
             this.topViewBtn.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.topViewBtn.Name = "topViewBtn";
             this.topViewBtn.Size = new System.Drawing.Size(23, 22);
-            this.topViewBtn.Text = "toolStripButton5";
+            this.topViewBtn.Text = "Top";
+            this.topViewBtn.Click += new System.EventHandler(this.topViewBtn_Click);
             // 
             // frontViewBtn
             // 
@@ -140,7 +141,7 @@
             this.frontViewBtn.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.frontViewBtn.Name = "frontViewBtn";
             this.frontViewBtn.Size = new System.Drawing.Size(23, 22);
-            this.frontViewBtn.Text = "toolStripButton6";
+            this.frontViewBtn.Text = "Front";
             // 
             // leftViewBtn
             // 
@@ -149,7 +150,8 @@
             this.leftViewBtn.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.leftViewBtn.Name = "leftViewBtn";
             this.leftViewBtn.Size = new System.Drawing.Size(23, 22);
-            this.leftViewBtn.Text = "toolStripButton7";
+            this.leftViewBtn.Text = "Left";
+            this.leftViewBtn.Click += new System.EventHandler(this.leftViewBtn_Click);
             // 
             // toolStripButton8
             // 
@@ -159,6 +161,26 @@
             this.toolStripButton8.Name = "toolStripButton8";
             this.toolStripButton8.Size = new System.Drawing.Size(23, 22);
             this.toolStripButton8.Text = "toolStripButton8";
+            // 
+            // rightViewBtn
+            // 
+            this.rightViewBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.rightViewBtn.Image = ((System.Drawing.Image)(resources.GetObject("rightViewBtn.Image")));
+            this.rightViewBtn.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.rightViewBtn.Name = "rightViewBtn";
+            this.rightViewBtn.Size = new System.Drawing.Size(23, 22);
+            this.rightViewBtn.Text = "Right";
+            this.rightViewBtn.Click += new System.EventHandler(this.rightViewBtn_Click);
+            // 
+            // bottomViewBtn
+            // 
+            this.bottomViewBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.bottomViewBtn.Image = ((System.Drawing.Image)(resources.GetObject("bottomViewBtn.Image")));
+            this.bottomViewBtn.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.bottomViewBtn.Name = "bottomViewBtn";
+            this.bottomViewBtn.Size = new System.Drawing.Size(23, 22);
+            this.bottomViewBtn.Text = "Bottom";
+            this.bottomViewBtn.Click += new System.EventHandler(this.bottomViewBtn_Click);
             // 
             // drawBtn
             // 
@@ -178,24 +200,6 @@
             this.toolStripButton11.Name = "toolStripButton11";
             this.toolStripButton11.Size = new System.Drawing.Size(23, 22);
             this.toolStripButton11.Text = "toolStripButton11";
-            // 
-            // toolStripButton1
-            // 
-            this.toolStripButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toolStripButton1.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButton1.Image")));
-            this.toolStripButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButton1.Name = "toolStripButton1";
-            this.toolStripButton1.Size = new System.Drawing.Size(23, 22);
-            this.toolStripButton1.Text = "toolStripButton1";
-            // 
-            // toolStripButton2
-            // 
-            this.toolStripButton2.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toolStripButton2.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButton2.Image")));
-            this.toolStripButton2.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButton2.Name = "toolStripButton2";
-            this.toolStripButton2.Size = new System.Drawing.Size(23, 22);
-            this.toolStripButton2.Text = "toolStripButton2";
             // 
             // Form1
             // 
@@ -227,8 +231,8 @@
         private System.Windows.Forms.ToolStripButton toolStripButton8;
         private System.Windows.Forms.ToolStripButton drawBtn;
         private System.Windows.Forms.ToolStripButton toolStripButton11;
-        private System.Windows.Forms.ToolStripButton toolStripButton1;
-        private System.Windows.Forms.ToolStripButton toolStripButton2;
+        private System.Windows.Forms.ToolStripButton rightViewBtn;
+        private System.Windows.Forms.ToolStripButton bottomViewBtn;
     }
 }
 
