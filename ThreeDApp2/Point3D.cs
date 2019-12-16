@@ -29,6 +29,12 @@ namespace ThreeDApp2
             return new Point3D(A.X - P.X, A.Y - P.Y, A.Z - P.Z);
         }
 
+        public static Point3D operator / (Point3D A, float f)
+        {
+            return new Point3D(A.X / f, A.Y / f, A.Z / f);
+        } // scalar div
+
+
         public static float operator * (Point3D P, Point3D M)
         {
             return M.X * P.X + M.Y * P.Y + M.Z * P.Z;
@@ -50,7 +56,7 @@ namespace ThreeDApp2
             Y *= factor;
             Z *= factor;
         }
-        float Length()
+        public float Length()
         {
             return D2Real(Math.Sqrt(X * X + Y * Y + Z * Z));
         }

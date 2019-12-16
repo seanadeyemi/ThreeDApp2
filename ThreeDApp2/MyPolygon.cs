@@ -71,7 +71,8 @@ namespace ThreeDApp2
 
         public int CompareTo(MyPolygon otherFace)
         {
-            return (int)(this.Center.Z - otherFace.Center.Z); //In order of which is closest to the screen
+          //  return (int)(this.Center.Z - otherFace.Center.Z); //In order of which is closest to the screen
+            return (int)(this.Centroid().Z - otherFace.Centroid().Z); //In order of which is closest to the screen
         }
     }
 }

@@ -50,7 +50,7 @@ namespace ThreeDApp2
             m_point.Add(P);
             return true;
         }
-        protected Point3D Point(int index)
+        public Point3D Point(int index)
         {
             //   Debug.Assert(index > 0 && index < m_point.Count);
 
@@ -279,8 +279,69 @@ namespace ThreeDApp2
             m_point.Insert(nPosition, P);
             return true;
         }
+        public Point3D Centroid()
+        {
+            float TotalArea;
+            Point3D Centre;
 
-       
+            Centre = new Point3D(D2Real(0.0), D2Real(0.0), D2Real(0.0));
+            TotalArea = D2Real(0.0);
+
+            for (int i = 0; i < GetSize() - 2; i++)
+            {
+                Point3D MidPoint = (Point(0) + Point(i + 1) + Point(i + 2)) / 3.0f;
+
+                float TArea = TriArea2(Point(0), Point(i + 1), Point(i + 2));
+
+                MidPoint.Scale(TArea);      // Wieght current triangle midpoint by area.
+                TotalArea += TArea;
+                Centre += MidPoint;
+            }
+
+            if (TotalArea > EPSILON)        // Triangle or greater
+            {
+                Centre.Scale(D2Real(1.0) / TotalArea);
+                return Centre;
+            }
+            else                            // all points coincident or colinear
+            {
+                Centre = new Point3D(D2Real(0.0), D2Real(0.0), D2Real(0.0));
+                if (Closed())
+                {
+                    for (int i = 0; i < GetSize() - 1; i++) Centre += m_point[i];
+                    Centre.Scale(D2Real(1.0 / (double)(GetSize() - 1)));
+                }
+                else
+                {
+                    for (int i = 0; i < GetSize(); i++) Centre += m_point[i];
+                    Centre.Scale(D2Real(1.0 / (double)GetSize()));
+                }
+                return Centre;
+            }
+        }
+
+        float TriArea2(Point3D p1, Point3D p2, Point3D p3)
+        // Calculates twice the area of the 3D triangle given by p1,p2,p3, Positive if CCW
+        {
+            Point3D CrossP = Cross(p2 - p1, p3 - p1);
+
+            if (CrossP.Z < D2Real(0.0))
+                return -CrossP.Length();
+            else
+                return CrossP.Length();
+        }
+
+        public float Dot(Point3D V1, Point3D V2)
+        {
+            return V1.X * V2.X + V1.Y * V2.Y + V1.Z * V2.Z;
+        }
+
+        public Point3D Cross(Point3D p1, Point3D p2)
+        {
+            return new Point3D(p1.Y * p2.Z - p2.Y * p1.Z,
+                           p2.X * p1.Z - p1.X * p2.Z,
+                           p1.X * p2.Y - p2.X * p1.Y);
+        }
 
     }
 

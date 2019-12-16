@@ -75,7 +75,9 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
+    <None Include="Mario hand.ani" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -85,9 +87,34 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <None Include="Resources\Mario hand.ani" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="cursors\3dwmove.cur" />
+    <Content Include="cursors\Aero Arrow Select.cur" />
+    <Content Include="cursors\BurninLitt14 Cursor 1 Drag Or Move.cur" />
+    <Content Include="cursors\flash 8 pencil.cur" />
+    <None Include="Resources\Zoom In.cur" />
+    <None Include="Resources\Zoom Out.cur" />
+    <None Include="Resources\3dwmove.cur" />
+    <None Include="Resources\flash 8 pencil.cur" />
+    <None Include="Resources\Windows 7 MS Paint Pencil.cur" />
+    <None Include="Resources\pencil %2826%29.cur" />
+    <None Include="Resources\pencil %2834%29.cur" />
+    <None Include="Resources\Pencil Handwriting.cur" />
+    <None Include="Resources\Pencil Handwriting%281%29.cur" />
+    <None Include="Resources\Aero Arrow Select.cur" />
+    <None Include="Resources\BurninLitt14 Cursor 1 Drag Or Move.cur" />
+    <EmbeddedResource Include="cursors\pencil%2826%29.cur" />
+    <Content Include="cursors\pencil %2834%29.cur" />
+    <Content Include="cursors\Pencil Handwriting%281%29.cur" />
+    <Content Include="cursors\Pencil Handwriting.cur" />
+    <Content Include="cursors\Windows 7 MS Paint Pencil.cur" />
+    <EmbeddedResource Include="cursors\ZoomIn.cur" />
+    <EmbeddedResource Include="cursors\ZoomOut.cur" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

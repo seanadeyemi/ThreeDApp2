@@ -191,6 +191,8 @@
             this.drawBtn.Name = "drawBtn";
             this.drawBtn.Size = new System.Drawing.Size(23, 22);
             this.drawBtn.Text = "toolStripButton10";
+            this.drawBtn.Click += new System.EventHandler(this.drawBtn_Click);
+            this.drawBtn.DisplayStyleChanged += new System.EventHandler(this.drawBtn_DisplayStyleChanged);
             // 
             // toolStripButton11
             // 
