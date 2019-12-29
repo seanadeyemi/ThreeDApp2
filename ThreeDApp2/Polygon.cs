@@ -115,20 +115,25 @@ namespace ThreeDApp2
 
         public bool Close()
         {
-            if (!Closed())
+            if (!Closed)
             {
                 // if (!SetSize(GetSize() + 1)) return false;
                 //  m_point[GetSize() - 1] = m_point[0];
                 m_point.Add(m_point[0]);
+              
             }
             return true;
         }
-        public bool Closed()
+        public bool Closed
         {
-            if (ABS(m_point[GetSize() - 1].X - m_point[0].X) > EPSILON) return false;
-            if (ABS(m_point[GetSize() - 1].Y - m_point[0].Y) > EPSILON) return false;
-            if (ABS(m_point[GetSize() - 1].Z - m_point[0].Z) > EPSILON) return false;
-            return true;
+            get
+            {
+                if (ABS(m_point[GetSize() - 1].X - m_point[0].X) > EPSILON) return false;
+                if (ABS(m_point[GetSize() - 1].Y - m_point[0].Y) > EPSILON) return false;
+                if (ABS(m_point[GetSize() - 1].Z - m_point[0].Z) > EPSILON) return false;
+                return true;
+            }
+
         }
 
         public bool Between(Point3D a, Point3D b, Point3D c)
@@ -255,7 +260,7 @@ namespace ThreeDApp2
 
             int nDistance;
 
-            if (!Closed())
+            if (!Closed)
             {
                 nDistance = Point2 - Point1;
             }
@@ -306,7 +311,7 @@ namespace ThreeDApp2
             else                            // all points coincident or colinear
             {
                 Centre = new Point3D(D2Real(0.0), D2Real(0.0), D2Real(0.0));
-                if (Closed())
+                if (Closed)
                 {
                     for (int i = 0; i < GetSize() - 1; i++) Centre += m_point[i];
                     Centre.Scale(D2Real(1.0 / (double)(GetSize() - 1)));
@@ -343,6 +348,12 @@ namespace ThreeDApp2
                            p1.X * p2.Y - p2.X * p1.Y);
         }
 
+        
+
+        public override string ToString()
+        {
+            return "Poly with " + this.GetSize() + " sides";
+        }
     }
 
 

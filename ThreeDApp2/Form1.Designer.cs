@@ -44,6 +44,9 @@
             this.bottomViewBtn = new System.Windows.Forms.ToolStripButton();
             this.drawBtn = new System.Windows.Forms.ToolStripButton();
             this.toolStripButton11 = new System.Windows.Forms.ToolStripButton();
+            this.orbitBtn = new System.Windows.Forms.ToolStripButton();
+            this.selectBtn = new System.Windows.Forms.ToolStripButton();
+            this.polygonListCombobox = new System.Windows.Forms.ToolStripComboBox();
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -63,7 +66,10 @@
             this.rightViewBtn,
             this.bottomViewBtn,
             this.drawBtn,
-            this.toolStripButton11});
+            this.toolStripButton11,
+            this.orbitBtn,
+            this.selectBtn,
+            this.polygonListCombobox});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Size = new System.Drawing.Size(800, 25);
@@ -99,6 +105,7 @@
             this.moveBtn.Name = "moveBtn";
             this.moveBtn.Size = new System.Drawing.Size(23, 22);
             this.moveBtn.Text = "Move";
+            this.moveBtn.Click += new System.EventHandler(this.moveBtn_Click);
             // 
             // scaleBtn
             // 
@@ -118,6 +125,7 @@
             this.panBtn.Name = "panBtn";
             this.panBtn.Size = new System.Drawing.Size(23, 22);
             this.panBtn.Text = "Pan";
+            this.panBtn.Click += new System.EventHandler(this.panBtn_Click);
             // 
             // toolStripSeparator1
             // 
@@ -202,6 +210,35 @@
             this.toolStripButton11.Name = "toolStripButton11";
             this.toolStripButton11.Size = new System.Drawing.Size(23, 22);
             this.toolStripButton11.Text = "toolStripButton11";
+            this.toolStripButton11.Click += new System.EventHandler(this.toolStripButton11_Click);
+            // 
+            // orbitBtn
+            // 
+            this.orbitBtn.CheckOnClick = true;
+            this.orbitBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.orbitBtn.Image = ((System.Drawing.Image)(resources.GetObject("orbitBtn.Image")));
+            this.orbitBtn.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.orbitBtn.Name = "orbitBtn";
+            this.orbitBtn.Size = new System.Drawing.Size(23, 22);
+            this.orbitBtn.Text = "toolStripButton1";
+            // 
+            // selectBtn
+            // 
+            this.selectBtn.CheckOnClick = true;
+            this.selectBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.selectBtn.Image = ((System.Drawing.Image)(resources.GetObject("selectBtn.Image")));
+            this.selectBtn.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.selectBtn.Name = "selectBtn";
+            this.selectBtn.Size = new System.Drawing.Size(23, 22);
+            this.selectBtn.Text = "toolStripButton2";
+            this.selectBtn.Click += new System.EventHandler(this.selectBtn_Click);
+            // 
+            // polygonListCombobox
+            // 
+            this.polygonListCombobox.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.polygonListCombobox.Name = "polygonListCombobox";
+            this.polygonListCombobox.Size = new System.Drawing.Size(121, 25);
+            this.polygonListCombobox.SelectedIndexChanged += new System.EventHandler(this.polygonListCombobox_SelectedIndexChanged);
             // 
             // Form1
             // 
@@ -211,6 +248,7 @@
             this.Controls.Add(this.toolStrip1);
             this.Name = "Form1";
             this.Text = "Form1";
+            this.Load += new System.EventHandler(this.Form1_Load_1);
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
             this.ResumeLayout(false);
@@ -235,6 +273,9 @@
         private System.Windows.Forms.ToolStripButton toolStripButton11;
         private System.Windows.Forms.ToolStripButton rightViewBtn;
         private System.Windows.Forms.ToolStripButton bottomViewBtn;
+        private System.Windows.Forms.ToolStripButton orbitBtn;
+        private System.Windows.Forms.ToolStripButton selectBtn;
+        private System.Windows.Forms.ToolStripComboBox polygonListCombobox;
     }
 }
 

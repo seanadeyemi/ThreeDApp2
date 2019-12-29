@@ -9,12 +9,25 @@ namespace ThreeDApp2
     public class Point3D
     {
         public float X, Y, Z;
+        private Point3D point3D;
         public const float EPSILON = 0.001f;	
         public Point3D(double v1, double v2, double v3)
         {
             X = D2Real(v1);
             Y = D2Real(v2);
             Z = D2Real(v3);
+        }
+
+        public Point3D(Point3D point3D)
+        {
+            this.X = point3D.X;
+            this.Y = point3D.Y;
+            this.Z = point3D.Z;
+        }
+
+        public static Point3D Empty
+        {
+            get { return new Point3D(0, 0, 0); }
         }
 
         public static Point3D operator + (Point3D A, Point3D P)
