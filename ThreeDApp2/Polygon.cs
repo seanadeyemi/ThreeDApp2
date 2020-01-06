@@ -3,13 +3,13 @@ using System.Collections.Generic;
 
 namespace ThreeDApp2
 {
-    public class Polygon
+    public class Polygon 
     {
         //int m_n;
         protected List<Point3D> m_point = new List<Point3D> { };
         float EPSILON = 0.001f;
         public Point3D Center = new Point3D(0, 0, 0);
-        public ShapeScreenPoints screenPoints = new ShapeScreenPoints();
+        private ShapeScreenPoints screenPoints = new ShapeScreenPoints();
         const float DEG2RAD = 0.0175f;           // converts degrees to radians
         const float RAD2DEG = 57.2957795f;		 // ...and back again.
         /*const float EPSILON = 0.001f;*/	 // used for REAL comparisons and stuff
@@ -33,7 +33,11 @@ namespace ThreeDApp2
         {
             return m_point.Contains(p);
         }
-
+        /// <summary>
+        /// Affects size by adding one Point
+        /// </summary>
+        /// <param name="P"></param>
+        /// <returns></returns>
         public bool Add(Point3D P)
         {
             //int s = GetSize() + 1;
@@ -112,7 +116,10 @@ namespace ThreeDApp2
             m_point.Clear();
             //SetSize(0);
         }
-
+        /// <summary>
+        /// adds one point that closes the polygon
+        /// </summary>
+        /// <returns></returns>
         public bool Close()
         {
             if (!Closed)
@@ -135,6 +142,8 @@ namespace ThreeDApp2
             }
 
         }
+
+        public ShapeScreenPoints ScreenPoints { get => screenPoints; set => screenPoints = value; }
 
         public bool Between(Point3D a, Point3D b, Point3D c)
         // Returns TRUE iff (a,b,c) are collinear and point c lies on the closed segement ab.
@@ -278,6 +287,12 @@ namespace ThreeDApp2
             m_point[nPos] = p;
             return true;
         }
+        /// <summary>
+        /// inserts a point into the polygon at a specified position
+        /// </summary>
+        /// <param name="nPosition"></param>
+        /// <param name="P"></param>
+        /// <returns></returns>
         public bool InsertAt(int nPosition, Point3D P)
         {
             if (P == null) return false;
@@ -353,6 +368,16 @@ namespace ThreeDApp2
         public override string ToString()
         {
             return "Poly with " + this.GetSize() + " sides";
+        }
+
+        public Point3D Do(Point3D input)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Point3D Undo(Point3D input)
+        {
+            throw new NotImplementedException();
         }
     }
 

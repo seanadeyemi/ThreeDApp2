@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows.Forms;
 
 namespace ThreeDApp2
@@ -16,12 +18,14 @@ namespace ThreeDApp2
 
         Point3D mCamera;
         Point3D mScreen;
-        MyPolygon[] mShape = new MyPolygon[3];
+        MyList<MyPolygon> mShape = new MyList<MyPolygon>();
+
         ShapeScreenPoints[] screenPoints = new ShapeScreenPoints[3];
         PointInfo pointInfo = new PointInfo();
         PointInfo pointInfoEnd = new PointInfo();
         Color DefaultColor = Color.Gray;
         Point[] line = new Point[2];
+        Point[] rectPts = new Point[2];
         Cursor CurrentCursor = null;
         string CurrentCursorIcon = string.Empty;
 
@@ -66,8 +70,8 @@ namespace ThreeDApp2
         Point3D defaultY3D = new Point3D(0, 300, 20);
         PolygonData polyData = PolygonData.Empty;
 
-        Point3D xAxisLine = new Point3D(40, 0, 20);
-        Point3D yAxisLine = new Point3D(0, -40, 20);
+        Point3D xAxisLine = new Point3D(150, 0, 20);
+        Point3D yAxisLine = new Point3D(0, -150, 20);
         Point3D zAxisLine = new Point3D(0, 0, 60);
 
         Point3D zeroPt = new Point3D(0, 0, 20);
@@ -79,7 +83,8 @@ namespace ThreeDApp2
 
         Point point02D = Point.Empty;
 
-        int s = 10;
+        int s =  10;
+        private bool FirstShapeAdded;
 
         public Form1()
         {
@@ -92,13 +97,21 @@ namespace ThreeDApp2
             this.MouseWheel += Form1_MouseWheel;
             this.MouseDown += Form1_MouseDown;
             this.MouseUp += Form1_MouseUp;
+            AdjustOffset();
+
+
+            InitializeScene();
+
+        }
+
+        private void AdjustOffset()
+        {
             offsetWidth = ClientRectangle.Width / 2;
             offsetHeight = ClientRectangle.Height / 2;
+        }
 
-
-
-
-
+        private void InitializeScene()
+        {
 
 
             shapeOrigin.X = 0;//ClientRectangle.Width / 2;
@@ -112,41 +125,42 @@ namespace ThreeDApp2
 
 
 
+            //point0 = new Point3D(-30, 0, 30); // Where we project the image to
+            //Point cpt = new Point();
+            ////RotatePoint(ref cpt, ref mCamera, Axis.X, 90);
+
+            //mCamera = new Point3D(-30, 0, 30);  // Our viewpoint
+            //mScreen = new Point3D(-10, 0, 30); // Where we project the image to
 
 
 
-            mShape[0] = new MyPolygon();
-            mShape[1] = new MyPolygon();
-            mShape[2] = new MyPolygon();
 
+            //mShape[0] = new MyPolygon();
+            //mShape[1] = new MyPolygon();
+            //mShape[2] = new MyPolygon();
 
-
-            //screenPoints[0] = new ShapeScreenPoints();
-            //screenPoints[1] = new ShapeScreenPoints();
-            //screenPoints[2] = new ShapeScreenPoints();
-
-            //mShape[0].SetSize(1);
-            //mShape[1].SetSize(1);
-            //mShape[2].SetSize(1);
-
-            //mShape[0].RemoveAll();
-            //mShape[1].RemoveAll();
-            //mShape[2].RemoveAll();
 
 
             // Define a shape
-            mShape[0].Add(new Point3D(0, 10, 20));
-            mShape[0].Add(new Point3D(0, 0, 20));
-            mShape[0].Add(new Point3D(10, 0, 20));
-            mShape[0].Add(new Point3D(10, 10, 20));
-            mShape[0].Add(new Point3D(5, 15, 20));
+            //mShape[0].Add(new Point3D(0, 10, 20));
+            //mShape[0].Add(new Point3D(0, 0, 20));
+            //mShape[0].Add(new Point3D(10, 0, 20));
+            //mShape[0].Add(new Point3D(10, 10, 20));
+            //mShape[0].Add(new Point3D(5, 15, 20));
+            MyPolygon shape1 = new MyPolygon();
+
+            shape1.Add(new Point3D(0, 10, 20));
+            shape1.Add(new Point3D(0, 0, 20));
+            shape1.Add(new Point3D(10, 0, 20));
+            shape1.Add(new Point3D(10, 10, 20));
+            shape1.Add(new Point3D(5, 15, 20));
             //  mShape[0].Close();
 
-            mShape[0].Center = new Point3D(5, 8, 20);
+            shape1.Center = new Point3D(5, 8, 20);
 
+            Set2DPoints(shape1, ref shape1.ScreenPoints.PtList);
+            mShape.Add(shape1);
 
-            //     Set2DPoints(mShape[0], ref screenPoints[0].PtList);
-            Set2DPoints(mShape[0], ref mShape[0].screenPoints.PtList);
 
 
             infinite3DStartY = new Point3D(0, 0, 20);
@@ -156,37 +170,32 @@ namespace ThreeDApp2
             infinite3DEndY = new Point3D(0, 30, 20);
             infinite2DEndY = Fetch2DPoint(infinite3DEndY);
 
-
-
-            // Shapes 1 and 2 are exactly the same as Shape 0 ...
-            //mShape[1] = mShape[0];
-            //mShape[2] = mShape[0];
-
-            mShape[1].Add(new Point3D(0, 10, 30));
-            mShape[1].Add(new Point3D(0, 0, 30));
-            mShape[1].Add(new Point3D(10, 0, 30));
-            mShape[1].Add(new Point3D(10, 10, 30));
-            mShape[1].Add(new Point3D(5, 15, 30));
-            mShape[1].Close();
-            mShape[1].Center = new Point3D(5, 8, 30);
+            MyPolygon shape2 = new MyPolygon();
+            shape2.Add(new Point3D(0, 10, 30));
+            shape2.Add(new Point3D(0, 0, 30));
+            shape2.Add(new Point3D(10, 0, 30));
+            shape2.Add(new Point3D(10, 10, 30));
+            shape2.Add(new Point3D(5, 15, 30));
+            shape2.Close();
+            shape2.Center = new Point3D(5, 8, 30);
 
             //Set2DPoints(mShape[1], ref screenPoints[1].PtList);
-            Set2DPoints(mShape[1], ref mShape[1].screenPoints.PtList);
+            Set2DPoints(shape2, ref shape2.ScreenPoints.PtList);
+            mShape.Add(shape2);
 
 
-
-
-            mShape[2].Add(new Point3D(0, 10, 50));
-            mShape[2].Add(new Point3D(0, 0, 50));
-            mShape[2].Add(new Point3D(10, 0, 50));
-            mShape[2].Add(new Point3D(10, 10, 50));
-            mShape[2].Add(new Point3D(5, 15, 50));
-            mShape[2].Close();
-            mShape[2].Center = new Point3D(5, 8, 50);
+            MyPolygon shape3 = new MyPolygon();
+            shape3.Add(new Point3D(0, 10, 50));
+            shape3.Add(new Point3D(0, 0, 50));
+            shape3.Add(new Point3D(10, 0, 50));
+            shape3.Add(new Point3D(10, 10, 50));
+            shape3.Add(new Point3D(5, 15, 50));
+            shape3.Close();
+            shape3.Center = new Point3D(5, 8, 50);
 
             //Set2DPoints(mShape[2], ref screenPoints[2].PtList);
-            Set2DPoints(mShape[2], ref mShape[2].screenPoints.PtList);
-
+            Set2DPoints(shape3, ref shape3.ScreenPoints.PtList);
+            mShape.Add(shape3);
 
 
             // ... but at different positions
@@ -201,14 +210,6 @@ namespace ThreeDApp2
 
             pointInfoEnd.p3d = new Point3D(0, 10, 20);
             pointInfoEnd.foundPoint = Fetch2DPoint(pointInfoEnd.p3d);
-
-
-
-
-            //Set2DPoint(xAxisLine, ref xAxisLine2D);
-            //Set2DPoint(yAxisLine, ref yAxisLine2D);
-            //Set2DPoint(zAxisLine, ref zAxisLine2D);
-            //Set2DPoint(point0, ref point02D);
 
             xAxisLine2D = Fetch2DPoint(xAxisLine);
             yAxisLine2D = Fetch2DPoint(yAxisLine);
@@ -236,13 +237,24 @@ namespace ThreeDApp2
                     //if (!NewPolygon.Contains(pointInfo.p3d))
                     //{
                     NewPolygon.Add(pointInfo.p3d);
-                    NewPolygon.screenPoints.PtList.Add(pointInfo.foundPoint);
+                    NewPolygon.ScreenPoints.PtList.Add(pointInfo.foundPoint);
 
+                    var polyg = new MyPolygon();
 
                     ////////////////////////////////////////
-
-                    polygonHistory.Polygon2Index = pointInfo.foundPointPolygonIndex;
-                    var polyg = mShape[pointInfo.foundPointPolygonIndex];
+                    int foundpolyIndex = FindPolygonIndexFromPoint(pointInfo.foundPoint);
+                    if (foundpolyIndex != -1)
+                    {
+                        polygonHistory.Polygon2Index = foundpolyIndex;//pointInfo.foundPointPolygonIndex;
+                        polyg = mShape[foundpolyIndex];//mShape[pointInfo.foundPointPolygonIndex];
+                    }
+                    else
+                    {
+                        polygonHistory.Polygon2Index = pointInfo.foundPointPolygonIndex;
+                        polyg = mShape[pointInfo.foundPointPolygonIndex];
+                    }
+                    //polygonHistory.Polygon2Index = foundpolyIndex;//pointInfo.foundPointPolygonIndex;
+                    //var polyg = mShape[foundpolyIndex];//mShape[pointInfo.foundPointPolygonIndex];
                     Point3D ptBefore = null;
                     Point ptBefore2D = Point.Empty;
 
@@ -251,7 +263,7 @@ namespace ThreeDApp2
                     if (previousIndex >= 0)
                     {
                         ptBefore = polyg[previousIndex];
-                        ptBefore2D = polyg.screenPoints.PtList[previousIndex];
+                        ptBefore2D = polyg.ScreenPoints.PtList[previousIndex];
                     }
                     else
                     {
@@ -328,7 +340,7 @@ namespace ThreeDApp2
                         {
 
                             mShape[pointInfo.foundPointPolygonIndex].Add(NewPolygon[1]);
-                            mShape[pointInfo.foundPointPolygonIndex].screenPoints.PtList.Add(NewPolygon.screenPoints.PtList[1]);
+                            mShape[pointInfo.foundPointPolygonIndex].ScreenPoints.PtList.Add(NewPolygon.ScreenPoints.PtList[1]);
 
                             //p1 = new Point3D(NewPolygon[1]);
                             //p2 = new Point3D(NewPolygon[0]);
@@ -337,7 +349,7 @@ namespace ThreeDApp2
                         else if (pointInfo.foundPointIndex == lastIndex) //did we end up on the last index
                         {
                             mShape[pointInfo.foundPointPolygonIndex].Add(NewPolygon[0]);
-                            mShape[pointInfo.foundPointPolygonIndex].screenPoints.PtList.Add(NewPolygon.screenPoints.PtList[0]);
+                            mShape[pointInfo.foundPointPolygonIndex].ScreenPoints.PtList.Add(NewPolygon.ScreenPoints.PtList[0]);
 
                             //p1 = new Point3D(NewPolygon[0]);
                             //p2 = new Point3D(NewPolygon[1]);
@@ -368,12 +380,12 @@ namespace ThreeDApp2
 
 
 
-                        for (int k = 0; k < mShape.Length; k++)
+                        for (int k = 0; k < mShape.Count; k++)
                         {
                             // found
                             //foundShapePointIndex = mShape[k].screenPoints.PtList.FindIndex(i => { return i == pointInfo.foundPoint; });
-                            var foundShapePointIndex1 = mShape[k].screenPoints.PtList.FindIndex(i => { return i == NewPolygon.screenPoints.PtList[0]; });// mShape[k].Contains(NewPolygon[0]);//.FindIndex(i => { return i == pointInfo.foundPoint; });
-                            var foundShapePointIndex2 = mShape[k].screenPoints.PtList.FindIndex(i => { return i == NewPolygon.screenPoints.PtList[1]; }); //mShape[k].Contains(NewPolygon[1]);//.FindIndex(i => { return i == pointInfo.foundPoint; });
+                            var foundShapePointIndex1 = mShape[k].ScreenPoints.PtList.FindIndex(i => { return i == NewPolygon.ScreenPoints.PtList[0]; });// mShape[k].Contains(NewPolygon[0]);//.FindIndex(i => { return i == pointInfo.foundPoint; });
+                            var foundShapePointIndex2 = mShape[k].ScreenPoints.PtList.FindIndex(i => { return i == NewPolygon.ScreenPoints.PtList[1]; }); //mShape[k].Contains(NewPolygon[1]);//.FindIndex(i => { return i == pointInfo.foundPoint; });
 
                             ////did we find it
                             //if (foundShapePointIndex != -1 )//&& (mShape[k].Closed == false))
@@ -431,7 +443,7 @@ namespace ThreeDApp2
                                 int prev = sz - 2;
 
                                 ptBefore = myPoly[prev];
-                                ptBefore2D = myPoly.screenPoints.PtList[prev];
+                                ptBefore2D = myPoly.ScreenPoints.PtList[prev];
 
                             }
                             else
@@ -439,7 +451,7 @@ namespace ThreeDApp2
                                 int prev = _foundShapePointIndex2 - 1;//pointInfo.foundPointIndex - 1;
 
                                 ptBefore = myPoly[prev];
-                                ptBefore2D = myPoly.screenPoints.PtList[prev];
+                                ptBefore2D = myPoly.ScreenPoints.PtList[prev];
                             }
                             polygonHistory.poly2BeforePoint = ptBefore;
                             polygonHistory.poly2BeforePoint2D = ptBefore2D;
@@ -452,13 +464,13 @@ namespace ThreeDApp2
                                     //  NewPolygon.Add(polygonHistory.poly1BeforePoint);
                                     NewPolygon.InsertAt(0, polygonHistory.poly1BeforePoint);
                                     // NewPolygon.screenPoints.PtList.Add(polygonHistory.poly1BeforePoint2D);
-                                    NewPolygon.screenPoints.PtList.Insert(0, polygonHistory.poly1BeforePoint2D);//.Add(polygonHistory.poly1BeforePoint2D);
+                                    NewPolygon.ScreenPoints.PtList.Insert(0, polygonHistory.poly1BeforePoint2D);//.Add(polygonHistory.poly1BeforePoint2D);
                                 }
 
                                 if (polygonHistory.poly2BeforePoint != null)
                                 {
                                     NewPolygon.Add(polygonHistory.poly2BeforePoint);
-                                    NewPolygon.screenPoints.PtList.Add(polygonHistory.poly2BeforePoint2D);
+                                    NewPolygon.ScreenPoints.PtList.Add(polygonHistory.poly2BeforePoint2D);
                                 }
 
                                 if (foundBoth)
@@ -468,20 +480,30 @@ namespace ThreeDApp2
                                     //    (polygonHistory.poly1BeforePoint2D == mShape[foundShapeBothPtsIndex].screenPoints.PtList[_foundShapeBothPointIndex2] &&
                                     //    polygonHistory.poly2BeforePoint2D == mShape[foundShapeBothPtsIndex].screenPoints.PtList[_foundShapeBothPointIndex1]))
 
-                                    var hasLastPoly = Array.Exists<MyPolygon>(mShape, i => {
-                                        return i.screenPoints.PtList.Contains(polygonHistory.poly1BeforePoint2D) &&
-                                        i.screenPoints.PtList.Contains(polygonHistory.poly2BeforePoint2D) && i.Closed; });
-                                    
+                                    //var hasLastPoly = Array.Exists<MyPolygon>(mShape, i =>
+                                    //{
+                                    //    return i.ScreenPoints.PtList.Contains(polygonHistory.poly1BeforePoint2D) &&
+                                    //    i.ScreenPoints.PtList.Contains(polygonHistory.poly2BeforePoint2D) && i.Closed;
+                                    //});
+
+                                    var hasLastPoly = mShape.Exists(i =>
+                                    {
+                                        return i.ScreenPoints.PtList.Contains(polygonHistory.poly1BeforePoint2D) &&
+                                        i.ScreenPoints.PtList.Contains(polygonHistory.poly2BeforePoint2D) && i.Closed;
+                                    });
+
                                     if (hasLastPoly)
                                     {
                                         NewPolygon.Close();
-                                        NewPolygon.screenPoints.PtList.Add(NewPolygon.screenPoints.PtList[0]);
+                                        NewPolygon.ScreenPoints.PtList.Add(NewPolygon.ScreenPoints.PtList[0]);
                                     }
                                 }
 
                                 //resize the array and add the NewPolygon
-                                Array.Resize(ref mShape, mShape.Length + 1); 
-                                mShape[mShape.GetUpperBound(0)] = NewPolygon;
+                                //Array.Resize(ref mShape, mShape.Length + 1);
+                                //mShape[mShape.GetUpperBound(0)] = NewPolygon;
+
+                                mShape.Add(NewPolygon);
 
                                 polygonHistory = null;
                             }
@@ -549,13 +571,13 @@ namespace ThreeDApp2
                             {
 
                                 NewPolygon.InsertAt(0, polygonHistory.poly1BeforePoint);
-                                NewPolygon.screenPoints.PtList.Insert(0, polygonHistory.poly1BeforePoint2D);
+                                NewPolygon.ScreenPoints.PtList.Insert(0, polygonHistory.poly1BeforePoint2D);
                             }
 
                             if (polygonHistory.poly2BeforePoint != null)
                             {
                                 NewPolygon.Add(polygonHistory.poly2BeforePoint);
-                                NewPolygon.screenPoints.PtList.Add(polygonHistory.poly2BeforePoint2D);
+                                NewPolygon.ScreenPoints.PtList.Add(polygonHistory.poly2BeforePoint2D);
                             }
 
 
@@ -576,8 +598,9 @@ namespace ThreeDApp2
 
 
                             //resize the array and add the NewPolygon
-                            Array.Resize(ref mShape, mShape.Length + 1);
-                            mShape[mShape.GetUpperBound(0)] = NewPolygon;
+                            //Array.Resize(ref mShape, mShape.Length + 1);
+                            //mShape[mShape.GetUpperBound(0)] = NewPolygon;
+                            mShape.Add(NewPolygon);
 
                             polygonHistory = null;
 
@@ -589,19 +612,9 @@ namespace ThreeDApp2
 
                     NewPolygon = null;
                     line = new Point[2];
+                    rectPts = new Point[2];
+                    FirstShapeAdded = false;
 
-                    //infiniteY = Point.Empty;
-                    //infinite3DY = null;
-
-
-                    // var pt = e.Location;//pointInfo.foundPoint;
-                    //var pt = Fetch2DPoint(pointInfo.p3d);
-                    //   NewPolygon.screenPoints.PtList = new List<Point>();
-                    //  NewPolygon.screenPoints.PtList.Add(pt);
-
-                    //line[1] = pointInfo.foundPoint;//pt;
-
-                    //BuildGraph();
 
                     AddPolygonsToComboBox();
                 }
@@ -617,7 +630,8 @@ namespace ThreeDApp2
 
             if (Cursor != null)
             {
-                string file = $@"C:\Users\OFFICE10\Documents\Visual Studio 2017\Projects\ThreeDApp2\ThreeDApp2\cursors\{IconName}";
+                var loc = ConfigurationManager.AppSettings["cursorLoc"];
+                string file = $@"{loc}\{IconName}";
                 if (Cursor.Current != null)
                 {
                     Cursor mycursor = new Cursor(Cursor.Current.Handle);
@@ -667,7 +681,12 @@ namespace ThreeDApp2
                 {
                     MouseIsDown = true;
                 }
-                if (drawBtn.Checked)
+                else if (rectBtn.Checked)
+                {
+                    MouseIsDown = true;
+                    rectPts[0] = TransformPoint(e.Location);
+                }
+                else if (drawBtn.Checked)
                 {
                     if (pointInfo != null)
                     {
@@ -675,7 +694,7 @@ namespace ThreeDApp2
                         {
                             NewPolygon = new MyPolygon();
                             NewPolygon.Add(pointInfo.p3d);
-                            NewPolygon.screenPoints.PtList.Add(pointInfo.foundPoint);
+                            NewPolygon.ScreenPoints.PtList.Add(pointInfo.foundPoint);
 
                             polygonHistory = new PolygonHistory();
                             polygonHistory.Polygon1Index = pointInfo.foundPointPolygonIndex;
@@ -687,7 +706,7 @@ namespace ThreeDApp2
                             if (previousIndex >= 0)
                             {
                                 ptBefore = poly[previousIndex];
-                                pt2Dbefore = poly.screenPoints.PtList[previousIndex];
+                                pt2Dbefore = poly.ScreenPoints.PtList[previousIndex];
                             }
                             else
                             {
@@ -695,7 +714,7 @@ namespace ThreeDApp2
                                 //if (poly.GetSize() > 2)
                                 {
                                     ptBefore = poly[poly.GetSize() - 2];
-                                    pt2Dbefore = poly.screenPoints.PtList[poly.GetSize() - 2];
+                                    pt2Dbefore = poly.ScreenPoints.PtList[poly.GetSize() - 2];
                                 }
                             }
                             //Point3D ptAfter = null;
@@ -759,6 +778,50 @@ namespace ThreeDApp2
 
         }
 
+        private int FindPolygonIndexFromPoint(Point searchPt)
+        {
+
+            int ind = -1;
+
+            for (int k = 0; k < mShape.Count; k++)
+            {
+                if (mShape[k].ScreenPoints.PtList.Contains(searchPt))
+                {
+                    ind = k;
+                }
+            }
+            return ind;
+
+            //var pol = mShape.FindIndex(p =>
+            //{
+
+            //    int ind = p.ScreenPoints.PtList.FindIndex(pt =>
+            //    {
+            //        if (PointInRange(searchPt, pt))
+            //        {
+            //            return true;
+            //        }
+            //        else
+            //        {
+            //            return false;
+            //        }
+
+            //    });
+
+            //    if (ind != -1)
+            //    {
+            //        return true;
+            //    }
+            //    else
+            //    {
+            //        return false;
+            //    }
+
+            //});
+
+            //return pol;
+        }
+
         private void Form1_MouseWheel(object sender, MouseEventArgs e)
         {
             // The amount by which we adjust scale per wheel click.
@@ -777,6 +840,14 @@ namespace ThreeDApp2
             Invalidate();
         }
 
+        private Point TransformPoint(Point point)
+        {
+            point.X -= offsetWidth;
+            point.Y -= offsetHeight;
+
+            return point;
+        }
+
         private void Form1_MouseMove(object sender, MouseEventArgs e)
         {
 
@@ -784,43 +855,79 @@ namespace ThreeDApp2
             //lastMousePos = Point.Empty;
             if (e.Button == MouseButtons.Left)
             {
-                if (MouseIsDown)
+                if (panBtn.Checked)
                 {
-                    float delta = 0.1f;
-                    var x = e.X - lastMousePos.X;
-                    var y = e.Y - lastMousePos.Y;
-                    // float delta = 0.1f;
-
-
-
-                    if (x > 0 && x > y)
+                    if (MouseIsDown)
                     {
-                        mCamera.X -= delta;
-                        Update2dPoints();
-                        Invalidate();
-                    }
-                    if (x < 0 && x < y)
-                    {
-                        mCamera.X += delta;
-                        Update2dPoints();
-                        Invalidate();
-                    }
+                        float delta = 0.1f;
+                        var x = e.X - lastMousePos.X;
+                        var y = e.Y - lastMousePos.Y;
+                        // float delta = 0.1f;
 
-                    if (y > 0 && y > x)
-                    {
-                        mCamera.Y -= delta;
-                        Update2dPoints();
-                        Invalidate();
-                    }
 
-                    if (y < 0 && y < x)
-                    {
-                        mCamera.Y += delta;
-                        Update2dPoints();
-                        Invalidate();
-                    }
 
-                    lastMousePos = new Point(e.X, e.Y);
+                        if (x > 0 && x > y)
+                        {
+                            mCamera.X -= delta;
+                            Update2dPoints();
+                            Invalidate();
+                        }
+                        if (x < 0 && x < y)
+                        {
+                            mCamera.X += delta;
+                            Update2dPoints();
+                            Invalidate();
+                        }
+
+                        if (y > 0 && y > x)
+                        {
+                            mCamera.Y -= delta;
+                            Update2dPoints();
+                            Invalidate();
+                        }
+
+                        if (y < 0 && y < x)
+                        {
+                            mCamera.Y += delta;
+                            Update2dPoints();
+                            Invalidate();
+                        }
+
+                        lastMousePos = new Point(e.X, e.Y);
+
+                    }
+                }
+                else if (rectBtn.Checked)
+                {
+                    if (MouseIsDown)
+                    {
+                        if (mShape.Count > 0)
+                        {
+                            Point currentpoint = TransformPoint(e.Location);
+                            rectPts[1] = TransformPoint(e.Location);
+
+                            MyPolygon rect = CreatePolygonFromPoints(rectPts);
+                            if (FirstShapeAdded == false)
+                            {
+                                mShape.Add(rect);
+                                FirstShapeAdded = true;
+                            }
+                            else
+                            {
+                                int lastindex = mShape.Count - 1;
+                                //MyPolygon currentRect = mShape[lastindex];
+                                MyPolygon updatedRect = UpdatePolygonFromPoint(rectPts);
+
+                                //if (currentpoint.X > rectPts[0].X)
+                                {
+                                    mShape[lastindex] = updatedRect;
+                                }
+                            }
+
+
+                        }
+
+                    }
 
                 }
             }
@@ -837,7 +944,6 @@ namespace ThreeDApp2
 
                 //if (lastMousePos != Point.Empty)
                 {
-
 
                     if (x > 0 && x > y)
                     {
@@ -864,7 +970,6 @@ namespace ThreeDApp2
                         }
                         Invalidate();
                     }
-
                     if (y > 0 && y > x)
                     {
                         if (orbitBtn.Checked)
@@ -877,7 +982,6 @@ namespace ThreeDApp2
                         }
                         Invalidate();
                     }
-
                     if (y < 0 && y < x)
                     {
                         if (orbitBtn.Checked)
@@ -891,15 +995,9 @@ namespace ThreeDApp2
                         Invalidate();
                     }
 
-
-
-
-
                 }
 
                 lastMousePos = new Point(e.X, e.Y);
-
-
 
             }
 
@@ -907,142 +1005,140 @@ namespace ThreeDApp2
             Point foundPt = Point.Empty;
 
 
-            //Array.Sort(mShape);
-            //Array.Reverse(mShape);
+            List<MyPolygon> candidates = new List<MyPolygon>();
 
-
-
-            List<int> candidates = new List<int>();
-
-            for (int j = 0; j < mShape.Length; j++)
+            for (int j = 0; j < mShape.Count; j++)
             {
                 var poly = mShape[j];
 
                 Polygon2D p2d = new Polygon2D();
 
-
-                Point[] pts = poly.screenPoints.PtList.ToArray();
+                Point[] pts = poly.ScreenPoints.PtList.ToArray();
 
                 for (int g = 0; g < pts.Length; g++)
                 {
                     pts[g].X += offsetWidth;
                     pts[g].Y += offsetHeight;
-
                 }
+
+                CheckIfPointIsOnLineInPolygon(e.Location, ref poly);
+                if(poly.IsOnLine)
+                {
+                    poly.linePolygonIndex = j;
+                }
+
 
 
                 polyData.PtInPoly = p2d.IsPointInPolygon(pts, e.Location);//p2d.PointIn(e.Location);
-                if (polyData.PtInPoly)
-                {
-                    //candidates.Add(j);
-                    polyData.PolyIndex = j;
-                }
-                else
-                {
-                    polyData = PolygonData.Empty;
-                }
 
                 if (polyData.PtInPoly)
                 {
-                    break;
+                    poly.parentPointInPolyIndex = j;
+
+                    candidates.Add(poly);
+                   
+                }
+
+            }
+
+            //get the one closest to the screen by sorting with their centroids
+            if (candidates.Count > 0)
+            {
+                candidates.Sort();
+                var g = candidates[0];
+                if (g.parentPointInPolyIndex != -1)
+                {
+                    polyData.PtInPoly = true;
+                    polyData.PolyIndex = g.parentPointInPolyIndex;
                 }
 
             }
 
 
-            //if(candidates.Count > 0)
-            //{
-            //    candidates.Sort();
-            //    var g = candidates[0];
-            //    polyData.PolyIndex = g;
-
-            //}
-
-
 
             //while going thru each polygon
-            //for (int k = 0; k < mShape.Length; k++)
-            //{
-
-            //    //search thru its 2D points to find the cursors point
-            //    int index = mShape[k].screenPoints.PtList.FindIndex(p =>
-            //    {
-            //        if (PointInRange(cursorPt, p))
-            //        {
-
-            //            foundPt = p;
-            //            //pointInfo = new PointInfo();
-            //            pointInfo.IsOnPoint = true;
-            //            pointInfo.foundPoint = foundPt;
-            //            //infiniteY.X = foundPt.X;
-            //            //infiniteY.Y = foundPt.Y;
-            //            return true;
-            //        }
-            //        else
-            //        {
-            //            foundPt = Point.Empty;
-            //            //pointInfo = new PointInfo();
-            //            pointInfo.IsOnPoint = false;
-            //            //pointInfo.foundPoint = Point.Empty;
-            //            //pointInfo.p3d = null;
-            //            //infiniteY = Point.Empty;
-            //            return false;
-            //        }
-
-            //    }
-
-            //   );
-            //    if (foundPt != Point.Empty)
-            //    {
-            //        pointInfo.p3d = mShape[k].Absolute(index);
-            //        pointInfo.foundPointIndex = index;
-            //        ptCount = mShape[k].PointSeparation(index, mShape[k].GetSize() - 1);
-            //        pointInfo.foundPointPolygonIndex = k;
-
-            //        break;
-            //    }
-            //}
-
-
-            //scan each polygon's 2d list looking for this point
-            var pol = Array.FindIndex<MyPolygon>(mShape, p =>
+            for (int k = 0; k < mShape.Count; k++)
             {
 
-                int ind = p.screenPoints.PtList.FindIndex(pt =>
+                //search thru its 2D points to find the cursors point
+                int index = mShape[k].ScreenPoints.PtList.FindIndex(p =>
                 {
-                    if (PointInRange(cursorPt, pt))
+                    if (PointInRange(cursorPt, p))
                     {
-                        foundPt = pt;
+
+                        foundPt = p;
+                        //pointInfo = new PointInfo();
                         pointInfo.IsOnPoint = true;
                         pointInfo.foundPoint = foundPt;
+                        //infiniteY.X = foundPt.X;
+                        //infiniteY.Y = foundPt.Y;
                         return true;
                     }
                     else
                     {
                         foundPt = Point.Empty;
+                        //pointInfo = new PointInfo();
                         pointInfo.IsOnPoint = false;
+                        //pointInfo.foundPoint = Point.Empty;
+                        //pointInfo.p3d = null;
+                        //infiniteY = Point.Empty;
                         return false;
                     }
 
-                });
+                }
 
+               );
                 if (foundPt != Point.Empty)
                 {
-                    pointInfo.p3d = p.Absolute(ind);
-                    pointInfo.foundPointIndex = ind;
-                    ptCount = p.PointSeparation(ind, p.GetSize() - 1);
-                    // pointInfo.foundPointPolygonIndex = ;
+                    pointInfo.p3d = mShape[k].Absolute(index);
+                    pointInfo.foundPointIndex = index;
+                    ptCount = mShape[k].PointSeparation(index, mShape[k].GetSize() - 1);
+                    pointInfo.foundPointPolygonIndex = k;
 
-                    return true;
+                    break;
                 }
-                else
-                {
-                    return false;
-                }
+            }
 
-            });
 
-            pointInfo.foundPointPolygonIndex = pol;
+            //scan each polygon's 2d list looking for this point
+            //var pol = mShape.FindIndex(p =>
+            //{
+
+            //    int ind = p.ScreenPoints.PtList.FindIndex(pt =>
+            //    {
+            //        if (PointInRange(cursorPt, pt))
+            //        {
+            //            foundPt = pt;
+            //            pointInfo.IsOnPoint = true;
+            //            pointInfo.foundPoint = foundPt;
+            //            return true;
+            //        }
+            //        else
+            //        {
+            //            foundPt = Point.Empty;
+            //            pointInfo.IsOnPoint = false;
+            //            return false;
+            //        }
+
+            //    });
+
+            //    if (foundPt != Point.Empty)
+            //    {
+            //        pointInfo.p3d = p.Absolute(ind);
+            //        pointInfo.foundPointIndex = ind;
+            //        ptCount = p.PointSeparation(ind, p.GetSize() - 1);
+            //        // pointInfo.foundPointPolygonIndex = ;
+
+            //        return true;
+            //    }
+            //    else
+            //    {
+            //        return false;
+            //    }
+
+            //});
+
+            //pointInfo.foundPointPolygonIndex = pol;
 
 
 
@@ -1057,35 +1153,108 @@ namespace ThreeDApp2
 
             if (NewPolygon != null)
             {
-
-
-                if (NewPolygon.screenPoints.PtList.Count == 1)
+                if (NewPolygon.ScreenPoints.PtList.Count == 1)
                 {
                     //set line array as from existing point to cursor point
 
-                    line[0] = NewPolygon.screenPoints.PtList[0];
+                    line[0] = NewPolygon.ScreenPoints.PtList[0];
                     line[1] = new Point(e.Location.X - offsetWidth, e.Location.Y - offsetHeight); //offsetWidth and offsetHeight are translations from top left corner of screen
-
-
 
                 }
             }
-
-            // if()
-
-            //if(PointInfo.Between(line[0], infinite2DEndY, line[1]))
-            //{
-            //    inBetween = true;
-            //}
-            //else
-            //{
-            //    inBetween = false;
-            //}
 
 
 
             Invalidate();
         }
+
+        private void CheckIfPointIsOnLineInPolygon(Point location, ref MyPolygon poly)
+        {
+            for (int m = 0; m < poly.ScreenPoints.PtList.Count; m++)
+            {
+                int lastIndex = poly.ScreenPoints.PtList.Count - 2;
+                var start = m < lastIndex ? m : lastIndex;
+                var end = m < lastIndex ? m + 1 : 0;
+                var pt1 = poly.ScreenPoints.PtList[start];
+                var pt2 = poly.ScreenPoints.PtList[end];
+
+                var curPt = TransformPoint(location);
+
+                var isOnLine = poly.ScreenPoints.Between(pt1, pt2, curPt);
+                if (isOnLine)
+                {
+                    poly.IsOnLine = true;
+                    poly.HiliteIndex1 = start;
+                    poly.HiliteIndex2 = end;
+                }
+                else
+                {
+                    poly.IsOnLine = false;
+                    poly.HiliteIndex1 = -1;
+                    poly.HiliteIndex2 = -1;
+                }
+
+            }
+        }
+
+        private MyPolygon UpdatePolygonFromPoint(Point[] RectPts)
+        {
+            Point topRight = RectPts[1];
+            Point bottomLeft = RectPts[0];
+
+            Point topLeft = new Point(bottomLeft.X, topRight.Y);
+            Point bottomRight = new Point(topRight.X, bottomLeft.Y);
+
+
+
+            var p3dtopRight = Fetch3DPoint(topRight);
+            var p3dbottomLeft = Fetch3DPoint(bottomLeft);
+            var p3dtopLeft = Fetch3DPoint(topLeft);
+            var p3dbottomRight = Fetch3DPoint(bottomRight);
+
+
+            MyPolygon rectPoly = new MyPolygon();
+            rectPoly.Add(p3dtopLeft);
+            rectPoly.Add(p3dtopRight);
+            rectPoly.Add(p3dbottomRight);
+            rectPoly.Add(p3dbottomLeft);
+            rectPoly.Close();
+
+            Set2DPoints(rectPoly, ref rectPoly.ScreenPoints.PtList);
+            return rectPoly;
+
+
+
+        }
+
+        private MyPolygon CreatePolygonFromPoints(Point[] RectPts)
+        {
+            Point topRight = RectPts[1];
+            Point bottomLeft = RectPts[0];
+
+            Point topLeft = new Point(bottomLeft.X, topRight.Y);
+            Point bottomRight = new Point(topRight.X, bottomLeft.Y);
+
+
+
+            var p3dtopRight = Fetch3DPoint(topRight);
+            var p3dbottomLeft = Fetch3DPoint(bottomLeft);
+            var p3dtopLeft = Fetch3DPoint(topLeft);
+            var p3dbottomRight = Fetch3DPoint(bottomRight);
+
+
+            MyPolygon rectPoly = new MyPolygon();
+            rectPoly.Add(p3dtopLeft);
+            rectPoly.Add(p3dtopRight);
+            rectPoly.Add(p3dbottomRight);
+            rectPoly.Add(p3dbottomLeft);
+            rectPoly.Close();
+
+            Set2DPoints(rectPoly, ref rectPoly.ScreenPoints.PtList);
+            return rectPoly;
+
+        }
+
         //checks if point is closeby to pointChecked creating a snap effect
         public bool PointInRange(Point point, Point pointChecked)
         {
@@ -1103,9 +1272,9 @@ namespace ThreeDApp2
         //}
         private void Update2dPoints()
         {
-            for (int i = 0; i < mShape.Length; i++)
+            for (int i = 0; i < mShape.Count; i++)
             {
-                Set2DPoints(mShape[i], ref mShape[i].screenPoints.PtList);
+                Set2DPoints(mShape[i], ref mShape[i].ScreenPoints.PtList);
             }
 
             Set2DPoint(infinite3DStartY, ref infinite2DStartY);
@@ -1146,7 +1315,7 @@ namespace ThreeDApp2
         }
         private void RotateAll(Axis axis, double degrees)
         {
-            for (int i = 0; i < mShape.Length; i++)
+            for (int i = 0; i < mShape.Count; i++)
             {
                 // Go thru each point
                 MyPolygon po = new MyPolygon();
@@ -1189,7 +1358,7 @@ namespace ThreeDApp2
 
                 Set2DPoints(po, ref ptList);
                 mShape[i] = po;
-                mShape[i].screenPoints.PtList = ptList;
+                mShape[i].ScreenPoints.PtList = ptList;
                 mShape[i].Center.Z = depth;
 
                 //screenPoints[i].PtList = ptList;
@@ -1339,7 +1508,7 @@ namespace ThreeDApp2
 
         private void RotateShapes(Axis axis, double degrees)
         {
-            for (int i = 0; i < mShape.Length; i++)
+            for (int i = 0; i < mShape.Count; i++)
             {
                 // Go thru each point
                 MyPolygon po = new MyPolygon();
@@ -1382,7 +1551,7 @@ namespace ThreeDApp2
 
                 Set2DPoints(po, ref ptList);
                 mShape[i] = po;
-                mShape[i].screenPoints.PtList = ptList;
+                mShape[i].ScreenPoints.PtList = ptList;
                 mShape[i].Center.Z = depth;
 
                 //screenPoints[i].PtList = ptList;
@@ -1601,10 +1770,11 @@ namespace ThreeDApp2
             //int s = 10;  // Just for scaling
             Point pt = new Point();
             Graphics g = e.Graphics;
-            g.DrawString($"Camera: {mCamera.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 5f);
-            g.DrawString($"Cur Pt: {currentPoint.X}, {currentPoint.Y}", SystemFonts.DefaultFont, Brushes.Black, 5f, 25f);
+            g.DrawString($"Camera: {mCamera.X} {mCamera.Y} {mCamera.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 25f);
+            g.DrawString($"Cur Pt: {currentPoint.X}, {currentPoint.Y}", SystemFonts.DefaultFont, Brushes.Black, 5f, 45f);
             //g.DrawString($"mouse pos: {textVal}", SystemFonts.DefaultFont, Brushes.Black, 5f, 45f);
-            g.DrawString($"normal: X: {normalSample.X}, Y: {normalSample.Y}, Z: {normalSample.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 65f);
+           // g.DrawString($"normal: X: {normalSample.X}, Y: {normalSample.Y}, Z: {normalSample.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 65f);
+            g.DrawString($"Screen: X: {mScreen.X}, Y: {mScreen.Y}, Z: {mScreen.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 65f);
             int currentpoly = -1;
 
 
@@ -1629,12 +1799,18 @@ namespace ThreeDApp2
 
 
 
-            Array.Sort(mShape);
-            Array.Reverse(mShape);
+            //Array.Sort(mShape);
+            //Array.Reverse(mShape);
+
+            mShape.Sort();
+            mShape.Reverse();
+
+
+
 
 
             // Draw each of our shapes
-            for (int i = 0; i < mShape.Length; i++)
+            for (int i = 0; i < mShape.Count; i++)
             {
                 Color shadedColor = FinalColor(mShape[i], new Point3D(5, 50, 10), g);
                 //g.FillPolygon(Brushes.DarkGray, mShape[i].screenPoints.PtList.ToArray());
@@ -1642,7 +1818,7 @@ namespace ThreeDApp2
                 if (mShape[i].Closed)
                 {
                     // g.FillPolygon(brush, mShape[i].screenPoints.PtList.ToArray());
-                    g.FillPolygon(Brushes.DarkGray, mShape[i].screenPoints.PtList.ToArray());
+                    g.FillPolygon(Brushes.DarkGray, mShape[i].ScreenPoints.PtList.ToArray());
                     brush.Dispose();
                 }
 
@@ -1657,7 +1833,7 @@ namespace ThreeDApp2
                             inPoly = true;
                             var br = new HatchBrush(HatchStyle.DottedDiamond, Color.Black, Color.Gray);
 
-                            g.FillPolygon(br, mShape[i].screenPoints.PtList.ToArray());
+                            g.FillPolygon(br, mShape[i].ScreenPoints.PtList.ToArray());
 
                             br.Dispose();
 
@@ -1679,7 +1855,7 @@ namespace ThreeDApp2
                         if (polygonListCombobox.SelectedIndex == i)
                         {
                             var br = new HatchBrush(HatchStyle.DashedHorizontal, Color.Blue, Color.Gray);
-                            g.FillPolygon(br, mShape[i].screenPoints.PtList.ToArray());
+                            g.FillPolygon(br, mShape[i].ScreenPoints.PtList.ToArray());
                             br.Dispose();
                         }
                     }
@@ -1691,7 +1867,7 @@ namespace ThreeDApp2
                 for (int j = 0; j < mShape[i].GetSize(); j++)
                 {
 
-                    pt = mShape[i].screenPoints.PtList[j];
+                    pt = mShape[i].ScreenPoints.PtList[j];
 
 
                     if (j == 0)
@@ -1700,16 +1876,40 @@ namespace ThreeDApp2
                     }
                     else
                     {
-                        if (inPoly)
-                        {
-                            var pn = new Pen(Color.Blue, 5f);
-                            g.DrawLine(Pens.Blue, startPt, pt);  // Draw a line to the others
-                            pn.Dispose();
-                        }
-                        else
+                        //if (inPoly)
+                        //{
+                        //    //var pn = new Pen(Color.Blue, 5f);                            
+                            
+                        //    {
+                        //        g.DrawLine(Pens.Blue, startPt, pt);  // Draw a line to the others
+                        //    }
+
+                        //    //pn.Dispose();
+                        //}
+                        //else
                         {
                             g.DrawLine(Pens.Black, startPt, pt);  // Draw a line to the others
                         }
+
+                        if (mShape[i].IsOnLine)
+                        {
+                            g.DrawString($"On Line: {currentpoly}", SystemFonts.DefaultFont, Brushes.Black, 5f, ClientRectangle.Bottom - 25f);
+
+                            if (mShape[i].HiliteIndex1 != -1 && mShape[i].HiliteIndex2 != -1)
+                            {
+                                int startIndex = mShape[i].HiliteIndex1;
+                                int endIndex = mShape[i].HiliteIndex2;
+                                Point Pt1 = mShape[i].ScreenPoints.PtList[startIndex];
+                                Point Pt2 = mShape[i].ScreenPoints.PtList[endIndex];
+                                if ((startPt == Pt1) && (pt == Pt2))
+                                {
+                                    g.DrawLine(Pens.Red, startPt, pt);  // Draw a line to the others
+                                }
+                            }
+
+                        }
+
+
 
                         startPt = pt;
 
@@ -1725,18 +1925,23 @@ namespace ThreeDApp2
                 g.FillEllipse(Brushes.Red, new RectangleF(currentPoint.X - 3, currentPoint.Y - 3, 6, 6));
             }
 
-            if (NewPolygon != null)
+            if (drawBtn.Checked && !rectBtn.Checked)
             {
-                //if(NewPolygon.screenPoints.PtList.Count > 1)
-                if (line.Length > 1)
+                if (NewPolygon != null)
                 {
-                    g.DrawLine(Pens.Black, line[0], line[1]);
-
-
+                    //if(NewPolygon.screenPoints.PtList.Count > 1)
+                    if (line.Length > 1)
+                    {
+                        g.DrawLine(Pens.Black, line[0], line[1]);
+                    }
                 }
-
-
             }
+
+            if (rectBtn.Checked)
+            {
+                DrawRectangle(g, line[0], line[1]);
+            }
+
 
             if (infinite2DEndY != Point.Empty)
             {
@@ -1756,9 +1961,18 @@ namespace ThreeDApp2
 
             }
 
-            g.DrawLine(Pens.Red, zeroPt2D, xAxisLine2D);
-            g.DrawLine(Pens.Blue, zeroPt2D, yAxisLine2D);
-            g.DrawLine(Pens.Green, zeroPt2D, zAxisLine2D);
+
+
+
+            //g.DrawLine(Pens.Red, zeroPt2D, xAxisLine2D);
+
+            //g.DrawLine(Pens.Blue, zeroPt2D, yAxisLine2D);
+            //g.DrawLine(Pens.Green, zeroPt2D, zAxisLine2D);
+
+
+
+
+
 
 
 
@@ -1767,7 +1981,7 @@ namespace ThreeDApp2
             g.DrawString($"Is in between: {inBetween}", SystemFonts.DefaultFont, Brushes.Black, 5f, 105f);
             g.DrawString($"Is in polygon: {polyData.PtInPoly}", SystemFonts.DefaultFont, Brushes.Black, 5f, 125f);
             g.DrawString($"point count: {ptCount}", SystemFonts.DefaultFont, Brushes.Black, 5f, 145f);
-            g.DrawString($"Polygons: {mShape.Length}", SystemFonts.DefaultFont, Brushes.Black, 5f, 165f);
+            g.DrawString($"Polygons: {mShape.Count}", SystemFonts.DefaultFont, Brushes.Black, 5f, 165f);
             if (currentpoly != -1)
             {
                 g.DrawString($"On Poly: {currentpoly}", SystemFonts.DefaultFont, Brushes.Black, 5f, 185f);
@@ -1775,61 +1989,162 @@ namespace ThreeDApp2
 
 
             float toppt = 185f;
-            for (int n = 0; n < mShape.Length; n++)
+            for (int n = 0; n < mShape.Count; n++)
             {
                 toppt += 20;
                 var status = mShape[n].Closed ? "Closed" : "Open";
                 if (currentpoly == (n + 1))
                 {
-                    g.DrawString($"Polygon {n + 1}, {status}, points:{mShape[n].screenPoints.PtList.Count} ", SystemFonts.DefaultFont, Brushes.Red, 5f, toppt);
+                    g.DrawString($"Polygon {n + 1}, {status}, points:{mShape[n].ScreenPoints.PtList.Count} ", SystemFonts.MessageBoxFont, Brushes.Red, 5f, toppt);
+                    StringBuilder pts = new StringBuilder();
+                    StringBuilder ptindexes = new StringBuilder();
+                    var ptlist = mShape[n].ScreenPoints.PtList;
+                    int j = 0;
+                    ptlist.ForEach(i => { pts.AppendFormat("{0}, {1}     ", i.X, i.Y); ptindexes.AppendFormat("{0}              ", j); j++; });
+                    g.DrawString($"{pts.ToString()}", SystemFonts.DefaultFont, Brushes.DarkBlue, 300f, 45f);
+                    g.DrawString($"{ptindexes.ToString()}", SystemFonts.DefaultFont, Brushes.DarkBlue, 300f, 65f);
 
                 }
                 else
                 {
-                    g.DrawString($"Polygon {n + 1}, {status}, points:{mShape[n].screenPoints.PtList.Count} ", SystemFonts.DefaultFont, Brushes.Black, 5f, toppt);
+                    g.DrawString($"Polygon {n + 1}, {status}, points:{mShape[n].ScreenPoints.PtList.Count} ", SystemFonts.DefaultFont, Brushes.Black, 5f, toppt);
 
                 }
             }
 
 
 
+          
+        }
 
+        private void DrawRectangle(Graphics g, Point point1, Point point2)
+        {
+            //throw new NotImplementedException();
+        }
+
+        private double getY(float x, double slope, double intercept) { return (slope * x) + intercept; }
+        private double getX(float y, double slope, double intercept) { return (y - intercept) / slope; }
+
+        private void UpdateOrtho()
+        {
+            for (int i = 0; i < mShape.Count; i++)
+            {
+                SwitchToOrtho(mShape[i], ref mShape[i].ScreenPoints.PtList);
+            }
 
         }
 
-        private void Set2DPoints(MyPolygon polygon, ref List<Point> ptList)
+
+        private void SwitchToOrtho(MyPolygon polygon, ref List<Point> ptList)
         {
             ptList.Clear();
             for (int j = 0; j < polygon.GetSize(); j++)
             {
                 Point pt = new Point();
-                var obj = polygon.Absolute(j);//[j];
-                pt.X = (Int32)(s * (obj.X - mCamera.X) * mScreen.Z / (obj.Z - mCamera.Z));
-                pt.Y = (Int32)(s * (obj.Y - mCamera.Y) * mScreen.Z / (obj.Z - mCamera.Z));
+                var view = polygon.Absolute(j);
+                pt.X = (Int32)((s * (view.X - mScreen.X)) + (view.X - mCamera.X));
+                pt.Y = (Int32)((s * (view.Y - mScreen.Y)) + (view.Y - mCamera.Z));
 
                 ptList.Add(pt);
             }
         }
 
+        private void Set2DPoints(MyPolygon polygon, ref List<Point> ptList)
+        {
+            if (!settingsBtn.Checked)
+            {
+                ptList.Clear();
+                for (int j = 0; j < polygon.GetSize(); j++)
+                {
+                    Point pt = new Point();
+                    var obj = polygon.Absolute(j);//[j];
+                    pt.X = (Int32)(s * (obj.X - mCamera.X) * mScreen.Z / (obj.Z - mCamera.Z));
+                    pt.Y = (Int32)(s * (obj.Y - mCamera.Y) * mScreen.Z / (obj.Z - mCamera.Z));
+
+                    ptList.Add(pt);
+                }
+            }
+            else
+            {
+                SwitchToOrtho(polygon, ref ptList);
+            }
+
+        }
+
         private void Set2DPoint(Point3D point3D, ref Point point)
         {
             Point pt = new Point();
-            var obj = point3D;
-            pt.X = (Int32)(s * (obj.X - mCamera.X) * mScreen.Z / (obj.Z - mCamera.Z));
-            pt.Y = (Int32)(s * (obj.Y - mCamera.Y) * mScreen.Z / (obj.Z - mCamera.Z));
+            if (!settingsBtn.Checked)
+            {
+                var obj = point3D;
+                pt.X = (Int32)(s * (obj.X - mCamera.X) * mScreen.Z / (obj.Z - mCamera.Z));
+                pt.Y = (Int32)(s * (obj.Y - mCamera.Y) * mScreen.Z / (obj.Z - mCamera.Z));
+            }
+            else
+            {
+               pt = Set2DPointOrtho(point3D);
+            }
+
             point = pt;
+        }
+
+        private Point Set2DPointOrtho(Point3D point3D)
+        {
+            Point pt = new Point();
+            var view = point3D;
+            pt.X = (Int32)((s * (view.X - mScreen.X)) + (view.X - mCamera.X));
+            pt.Y = (Int32)((s * (view.Y - mScreen.Y)) + (view.Y - mCamera.Z));
+
+            return pt;
+        }
+
+        private Point Fetch2DPointOrtho(Point3D view)
+        {
+            Point pt = new Point();
+
+            pt.X = (Int32)((s * (view.X - mScreen.X)) + (view.X - mCamera.X));
+            pt.Y = (Int32)((s * (view.Y - mScreen.Y)) + (view.Y - mCamera.Z));
+
+            return pt;
         }
 
         private Point Fetch2DPoint(Point3D pt3d)
         {
             Point pt = new Point();
-            pt.X = (Int32)(s * (pt3d.X - mCamera.X) * mScreen.Z / (pt3d.Z - mCamera.Z));
-            pt.Y = (Int32)(s * (pt3d.Y - mCamera.Y) * mScreen.Z / (pt3d.Z - mCamera.Z));
-            ///////////////////////////////////////////////////////
+            if (!settingsBtn.Checked)
+            {
+                pt.X = (Int32)(s * (pt3d.X - mCamera.X) * mScreen.Z / (pt3d.Z - mCamera.Z));
+                pt.Y = (Int32)(s * (pt3d.Y - mCamera.Y) * mScreen.Z / (pt3d.Z - mCamera.Z));
+            }
+            else
+            {
+                Fetch2DPointOrtho(pt3d);
+            }
 
-            //(pt3d.Z - mCamera.Z)/(pt3d.X - mCamera.X) = s * mScreen.Z/ pt.X;
+
+
 
             return pt;
+        }
+
+        private Point3D Fetch3DPoint(Point pt)
+        {
+            Point3D pt3d = new Point3D(0, 0, 0);
+
+            pt3d.Z = 19;//((s * mScreen.Z / pt.X) * (pt3d.X - mCamera.X)) + mCamera.Z;
+
+
+            pt3d.X = (((((pt3d.Z - mCamera.Z) * pt.X) / mScreen.Z) / s) + mCamera.X);
+            pt3d.Y = (((((pt3d.Z - mCamera.Z) * pt.Y) / mScreen.Z) / s) + mCamera.Y);
+
+
+            return pt3d;
+        }
+
+
+        private float mix(float value1, float value2, float factor)
+        {
+            return (value1 * factor) + (value2 * (1 - factor));
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -1844,10 +2159,15 @@ namespace ThreeDApp2
 
             AddPolygonsToComboBox();
 
-            RotateAll(Axis.Z, 45);
-            RotateAll(Axis.X, 60);
+            //  SetInitialRotation();
             //RotateAll(Axis.X, -30);
             //RotateAll(Axis.Y, 30);
+        }
+
+        private void SetInitialRotation()
+        {
+            RotateAll(Axis.Z, 45);
+            RotateAll(Axis.X, 60);
         }
 
         public void AddPolygonsToComboBox()
@@ -1857,8 +2177,8 @@ namespace ThreeDApp2
             List<MyPolygon> myPolygons = new List<MyPolygon>();
             myPolygons.AddRange(mShape);
 
-            myPolygons.Sort();
-            myPolygons.Reverse();
+            //myPolygons.Sort();
+            //myPolygons.Reverse();
 
             polygonListCombobox.Items.Clear();
 
@@ -1966,9 +2286,10 @@ namespace ThreeDApp2
             //object cur = cc.ConvertFrom(global::ThreeDApp2.Properties.Resources.Zoom_In);
             //Cursor = (System.Windows.Forms.Cursor)cur;
 
+            var loc = ConfigurationManager.AppSettings["cursorLoc"];//ConfigurationSettings.AppSettings["cursorLoc"];
 
             Cursor mycursor = new Cursor(Cursor.Current.Handle);
-            IntPtr colorcursorhandle = LoadCursorFromFile(@"C:\Users\OFFICE10\Documents\Visual Studio 2017\Projects\ThreeDApp2\ThreeDApp2\cursors\ZoomIn.cur");
+            IntPtr colorcursorhandle = LoadCursorFromFile($@"{loc}\ZoomIn.cur");
             mycursor.GetType().InvokeMember("handle", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.SetField, null, mycursor, new object[] { colorcursorhandle });
             this.Cursor = mycursor;
 
@@ -1985,8 +2306,9 @@ namespace ThreeDApp2
             //Cursor = (System.Windows.Forms.Cursor)cur;
 
             Cursor mycursor = new Cursor(Cursor.Current.Handle);
+            var loc = ConfigurationManager.AppSettings["cursorLoc"];
             //dinosau2.ani is in windows folder：
-            string path = @"C:\Users\OFFICE10\Documents\Visual Studio 2017\Projects\ThreeDApp2\ThreeDApp2" + @"\cursors\ZoomOut.cur";
+            string path = $@"{loc}\ZoomOut.cur";
             IntPtr colorcursorhandle = LoadCursorFromFile(path);
             mycursor.GetType().InvokeMember("handle", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.SetField, null, mycursor, new object[] { colorcursorhandle });
             this.Cursor = mycursor;
@@ -2003,7 +2325,7 @@ namespace ThreeDApp2
             List<Tuple<int, int>> edges = new List<Tuple<int, int>>();
 
             int id = 0;
-            for (int k = 0; k < mShape.Length; k++)
+            for (int k = 0; k < mShape.Count; k++)
             {
 
                 var poly = mShape[k];
@@ -2052,7 +2374,7 @@ namespace ThreeDApp2
                 max += poly.GetSize();
             }
 
-            for (int k = 0; k < mShape.Length; k++)
+            for (int k = 0; k < mShape.Count; k++)
             {
 
                 var poly = mShape[k];
@@ -2195,6 +2517,46 @@ namespace ThreeDApp2
 
             Invalidate();
 
+        }
+
+        private void resetBtn_Click(object sender, EventArgs e)
+        {
+            //Array.Clear(mShape, 0, mShape.Length);
+            mShape.Clear();
+
+            //Array.Resize(ref mShape, 3);
+
+            mShape = new MyList<MyPolygon>();
+            InitializeScene();
+            //  SetInitialRotation();
+        }
+
+        private void undoBtn_Click(object sender, EventArgs e)
+        {
+            mShape.Undo();
+            Invalidate();
+        }
+
+        private void redoBtn_Click(object sender, EventArgs e)
+        {
+            mShape.Redo();
+            Invalidate();
+        }
+
+        private void rectBtn_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Form1_SizeChanged(object sender, EventArgs e)
+        {
+            AdjustOffset();
+        }
+
+        private void settingsBtn_Click(object sender, EventArgs e)
+        {
+            //UpdateOrtho();
+            Invalidate();
         }
 
         public Func<T, IEnumerable<T>> ShortestPathFunction<T>(Graph<T> graph, T start)

@@ -8,6 +8,12 @@ namespace ThreeDApp2
         public Point3D mPosition;
         const float EPSILON = 0.001f;
 
+        public int parentPointInPolyIndex { get; internal set; } = -1;
+        public bool IsOnLine { get; internal set; } = false;
+        public int HiliteIndex1 { get; internal set; } = -1;
+        public int HiliteIndex2 { get; internal set; } = -1;
+        public int linePolygonIndex { get; internal set; } = -1;
+
         public MyPolygon()
         {
             mPosition = new Point3D(0, 0, 0);
@@ -73,7 +79,11 @@ namespace ThreeDApp2
         public int CompareTo(MyPolygon otherFace)
         {
             //  return (int)(this.Center.Z - otherFace.Center.Z); //In order of which is closest to the screen
-            return (int)(this.Centroid().Z - otherFace.Centroid().Z); //In order of which is closest to the screen
+            //return Math.Ceiling(this.Centroid().Z - otherFace.Centroid().Z); //In order of which is closest to the screen
+
+            return Math.Sign(this.Centroid().Z - otherFace.Centroid().Z);
+
+
         }
 
         public bool Equals(MyPolygon other)
