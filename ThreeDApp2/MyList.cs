@@ -17,12 +17,23 @@ namespace ThreeDApp2
                 OnAdd(this, null);
             }
 
-            MyList<Polygon> pol = new MyList<Polygon>();
-            pol.AddRange(this);
-            undoStack.Push(pol);
+            SaveCurrentPolysToStack();
             base.Add(item);
         }
 
+        public new void RemoveAt(int index)
+        {
+
+            SaveCurrentPolysToStack();
+            base.RemoveAt(index);
+        }
+
+        private void SaveCurrentPolysToStack()
+        {
+            MyList<Polygon> pol = new MyList<Polygon>();
+            pol.AddRange(this);
+            undoStack.Push(pol);
+        }
 
         public void Undo()
         {
@@ -39,7 +50,7 @@ namespace ThreeDApp2
 
         public void Redo()
         {
-            if(redoStack.Count > 0)
+            if (redoStack.Count > 0)
             {
                 var next = redoStack.Pop();
                 IEnumerable<Polygon> list = next.AsEnumerable();

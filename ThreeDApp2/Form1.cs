@@ -83,7 +83,7 @@ namespace ThreeDApp2
 
         Point point02D = Point.Empty;
 
-        int s =  10;
+        int s = 10;
         private bool FirstShapeAdded;
 
         public Form1()
@@ -154,7 +154,7 @@ namespace ThreeDApp2
             shape1.Add(new Point3D(10, 0, 20));
             shape1.Add(new Point3D(10, 10, 20));
             shape1.Add(new Point3D(5, 15, 20));
-            //  mShape[0].Close();
+            shape1.Close();
 
             shape1.Center = new Point3D(5, 8, 20);
 
@@ -673,10 +673,36 @@ namespace ThreeDApp2
             }
         }
 
+        private bool isSelectIcon()
+        {
+            return CurrentCursorIcon == Icons.Select ? true : false;
+        }
+
+
         private void Form1_MouseDown(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Left)
             {
+                if (polyData.PtInPoly)
+                {
+                    if (isSelectIcon())
+                    {
+                        polyData.IsSelected = true;
+                        polyData.SelectedPolyIndex = polyData.PolyIndex;
+                    }
+                    else
+                    {
+                        polyData.IsSelected = false;
+                        polyData.SelectedPolyIndex = -1;
+                    }
+                }
+                else
+                {
+                    polyData.IsSelected = false;
+                    polyData.SelectedPolyIndex = -1;
+                }
+
+
                 if (panBtn.Checked)
                 {
                     MouseIsDown = true;
@@ -1022,7 +1048,7 @@ namespace ThreeDApp2
                 }
 
                 CheckIfPointIsOnLineInPolygon(e.Location, ref poly);
-                if(poly.IsOnLine)
+                if (poly.IsOnLine)
                 {
                     poly.linePolygonIndex = j;
                 }
@@ -1036,7 +1062,7 @@ namespace ThreeDApp2
                     poly.parentPointInPolyIndex = j;
 
                     candidates.Add(poly);
-                   
+
                 }
 
             }
@@ -1773,7 +1799,7 @@ namespace ThreeDApp2
             g.DrawString($"Camera: {mCamera.X} {mCamera.Y} {mCamera.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 25f);
             g.DrawString($"Cur Pt: {currentPoint.X}, {currentPoint.Y}", SystemFonts.DefaultFont, Brushes.Black, 5f, 45f);
             //g.DrawString($"mouse pos: {textVal}", SystemFonts.DefaultFont, Brushes.Black, 5f, 45f);
-           // g.DrawString($"normal: X: {normalSample.X}, Y: {normalSample.Y}, Z: {normalSample.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 65f);
+            // g.DrawString($"normal: X: {normalSample.X}, Y: {normalSample.Y}, Z: {normalSample.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 65f);
             g.DrawString($"Screen: X: {mScreen.X}, Y: {mScreen.Y}, Z: {mScreen.Z}", SystemFonts.DefaultFont, Brushes.Black, 5f, 65f);
             int currentpoly = -1;
 
@@ -1838,10 +1864,20 @@ namespace ThreeDApp2
                             br.Dispose();
 
                             currentpoly = i + 1;
+
                         }
-
                     }
+                    if (i == polyData.SelectedPolyIndex && polyData.SelectedPolyIndex != -1)
+                    {
+                        if (polyData.IsSelected)
+                        {
+                            var pn = new Pen(Color.Purple, 4f);
 
+                            g.DrawPolygon(pn, mShape[i].ScreenPoints.PtList.ToArray());
+
+                            pn.Dispose();
+                        }
+                    }
                 }
 
                 if (polygonListCombobox.SelectedIndex != -1)
@@ -1879,7 +1915,7 @@ namespace ThreeDApp2
                         //if (inPoly)
                         //{
                         //    //var pn = new Pen(Color.Blue, 5f);                            
-                            
+
                         //    {
                         //        g.DrawLine(Pens.Blue, startPt, pt);  // Draw a line to the others
                         //    }
@@ -2014,7 +2050,7 @@ namespace ThreeDApp2
 
 
 
-          
+
         }
 
         private void DrawRectangle(Graphics g, Point point1, Point point2)
@@ -2082,7 +2118,7 @@ namespace ThreeDApp2
             }
             else
             {
-               pt = Set2DPointOrtho(point3D);
+                pt = Set2DPointOrtho(point3D);
             }
 
             point = pt;
@@ -2460,9 +2496,11 @@ namespace ThreeDApp2
             //IntPtr colorcursorhandle = LoadCursorFromFile(@"C:\Users\OFFICE10\Documents\Visual Studio 2017\Projects\ThreeDApp2\ThreeDApp2\cursors\flash 8 pencil.cur");
             //mycursor.GetType().InvokeMember("handle", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.SetField, null, mycursor, new object[] { colorcursorhandle });
             //this.Cursor = mycursor;
+            // SetIcon(Icons.Pencil);
 
-            SetIcon(Icons.Pencil);
-
+            string icon;
+            icon = drawBtn.Checked ? Icons.Pencil : Icons.Select;
+            SetIcon(icon);
         }
 
         private void toolStripButton11_Click(object sender, EventArgs e)
@@ -2481,7 +2519,10 @@ namespace ThreeDApp2
             //IntPtr colorcursorhandle = LoadCursorFromFile(@"C:\Users\OFFICE10\Documents\Visual Studio 2017\Projects\ThreeDApp2\ThreeDApp2\cursors\BurninLitt14 Cursor 1 Drag Or Move.cur");
             //mycursor.GetType().InvokeMember("handle", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.SetField, null, mycursor, new object[] { colorcursorhandle });
             //this.Cursor = mycursor;
-            SetIcon(Icons.Move);
+
+            string icon;
+            icon = moveBtn.Checked ? Icons.Move : Icons.Select;
+            SetIcon(icon);
         }
 
         private void panBtn_Click(object sender, EventArgs e)
@@ -2557,6 +2598,35 @@ namespace ThreeDApp2
         {
             //UpdateOrtho();
             Invalidate();
+        }
+
+        private void deleteBtn_Click(object sender, EventArgs e)
+        {
+            DeleteSelectedPoly();
+        }
+
+        private void DeleteSelectedPoly()
+        {
+            if (polyData.SelectedPolyIndex != -1)
+            {
+                mShape.RemoveAt(polyData.SelectedPolyIndex);
+                polyData.SelectedPolyIndex = -1;
+                polyData.IsSelected = false;
+                Invalidate();
+            }
+        }
+
+        private void Form1_KeyPress(object sender, KeyPressEventArgs e)
+        {
+
+        }
+
+        private void Form1_KeyDown_1(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Delete)
+            {
+                DeleteSelectedPoly();
+            }
         }
 
         public Func<T, IEnumerable<T>> ShortestPathFunction<T>(Graph<T> graph, T start)
@@ -2682,7 +2752,8 @@ namespace ThreeDApp2
             get { return new PolygonData(); }
         }
 
-
+        public bool IsSelected { get; internal set; }
+        public int SelectedPolyIndex { get; internal set; }
     }
     public class PolygonHistory
     {
