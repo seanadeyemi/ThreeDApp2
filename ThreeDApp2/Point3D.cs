@@ -26,9 +26,38 @@ namespace ThreeDApp2
             return new Point3D(A.X - P.X, A.Y - P.Y, A.Z - P.Z);
         }
 
+        public static Point3D operator * (Point3D A, float k)
+        {
+            return new Point3D(A.X * k, A.Y * k, A.Z * k);
+        }
+
         public Point3D Clone()
         {
             return new Point3D(X, Y, Z);
+        }
+
+        public static float Dot(Point3D a, Point3D b)
+        {
+            return a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+        }
+
+        public static Point3D Cross(Point3D a, Point3D b)
+        {
+            return new Point3D(a.Y * b.Z - a.Z * b.Y,
+                               a.Z * b.X - a.X * b.Z,
+                               a.X * b.Y - a.Y * b.X);
+        }
+
+        /// <summary>Unit-length copy, or a zero vector if this one has no length.</summary>
+        public Point3D Normalized()
+        {
+            float len = Length();
+            return len < 1e-9f ? new Point3D(0, 0, 0) : new Point3D(X / len, Y / len, Z / len);
+        }
+
+        public static float Distance(Point3D a, Point3D b)
+        {
+            return (a - b).Length();
         }
 
         public float D2Real(double x)

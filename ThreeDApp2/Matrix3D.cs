@@ -63,6 +63,21 @@ namespace ThreeDApp2
             return r;
         }
 
+        /// <summary>For a rotation matrix the transpose is also its inverse.</summary>
+        public Matrix3D Transpose()
+        {
+            Matrix3D r = new Matrix3D();
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++)
+                    r[i, j] = m[j, i];
+            return r;
+        }
+
+        public Matrix3D Clone()
+        {
+            return Transpose().Transpose();
+        }
+
         public Point3D Transform(Point3D p)
         {
             return new Point3D(
