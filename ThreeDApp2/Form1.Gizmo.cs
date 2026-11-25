@@ -109,6 +109,7 @@ namespace ThreeDApp2
 
         private void ViewAnimTick()
         {
+            NoteViewChange();
             double t = Math.Min(1, (DateTime.Now - mAnimStart).TotalMilliseconds / ViewAnimMs);
             double ease = t * t * (3 - 2 * t);
             mScene.SetOrbit(mAnimFromYaw + (mAnimToYaw - mAnimFromYaw) * ease,

@@ -112,18 +112,35 @@ namespace ThreeDApp2
             return (float)(Math.Round(v / GridSpacing) * GridSpacing);
         }
 
+        // Shapes whose screen box is farther than this from the cursor can't snap, so they're skipped.
+        static bool Near(RectangleF b, PointF c, float r)
+        {
+            return !b.IsEmpty && c.X >= b.Left - r && c.X <= b.Right + r && c.Y >= b.Top - r && c.Y <= b.Bottom + r;
+        }
+
+        static float Dist(PointF a, PointF c)
+        {
+            float dx = a.X - c.X, dy = a.Y - c.Y;
+            return (float)Math.Sqrt(dx * dx + dy * dy);   // NaN (behind the camera) never compares as near
+        }
+
         SnapResult SnapToVertices(Scene scene, PointF cursor, IList<Point3D> draft, Func<int, bool> skipLayer)
         {
+            // Uses the scene's cached on-screen vertices, so hovering stays fast on big models.
+            PointF[][] screen; RectangleF[] boxes;
+            scene.GetScreenCache(out screen, out boxes);
             SnapResult best = null;
             float bestDist = EndpointRadius;
             for (int i = 0; i < scene.Layers.Count; i++)
             {
                 MyPolygon shape = scene.Layers[i];
                 if (shape.Hidden || (skipLayer != null && skipLayer(i))) continue;
-                int count = Scene.VertexCount(shape);
-                for (int j = 0; j < count; j++)
+                if (!Near(boxes[i], cursor, EndpointRadius)) continue;
+                PointF[] sp = screen[i];
+                if (sp == null) continue;
+                for (int j = 0; j < sp.Length; j++)
                 {
-                    float d = ScreenDistance(scene, shape.Absolute(j), cursor);
+                    float d = Dist(sp[j], cursor);
                     if (d < bestDist)
                     {
                         bestDist = d;
@@ -151,9 +168,16 @@ namespace ThreeDApp2
             {
                 MyPolygon shape = scene.Layers[i];
                 if (shape.Hidden || (skipLayer != null && skipLayer(i))) continue;
-                for (int j = 0; j + 1 < shape.GetSize(); j++)
+                if (!Near(boxes[i], cursor, MidpointRadius)) continue;
+                PointF[] sp = screen[i];
+                if (sp == null) continue;
+                int segs = SegmentCount(shape, sp.Length);
+                for (int j = 0; j < segs; j++)
                 {
-                    Point3D mid = (shape.Absolute(j) + shape.Absolute(j + 1)) * 0.5f;
+                    // Cheap screen test first; the exact midpoint is projected only for close edges.
+                    PointF a = sp[j], b = sp[(j + 1) % sp.Length];
+                    if (!(Scene.DistanceToSegment(cursor, a, b) <= MidpointRadius)) continue;
+                    Point3D mid = (shape.Absolute(j) + shape.Absolute((j + 1) % sp.Length)) * 0.5f;
                     float d = ScreenDistance(scene, mid, cursor);
                     if (d < bestDist)
                     {
@@ -165,17 +189,34 @@ namespace ThreeDApp2
             return best;
         }
 
+        /// <summary>Edges of a shape: every side of a closed outline, one fewer for an open line.</summary>
+        static int SegmentCount(MyPolygon shape, int vertexCount)
+        {
+            return shape.Closed() && shape.GetSize() > vertexCount ? vertexCount : vertexCount - 1;
+        }
+
         SnapResult SnapToEdges(Scene scene, PointF cursor, Point3D rayO, Point3D rayD, Func<int, bool> skipLayer)
         {
+            PointF[][] screen; RectangleF[] boxes;
+            scene.GetScreenCache(out screen, out boxes);
             SnapResult best = null;
             float bestDist = EdgeRadius;
             for (int i = 0; i < scene.Layers.Count; i++)
             {
                 MyPolygon shape = scene.Layers[i];
                 if (shape.Hidden || (skipLayer != null && skipLayer(i))) continue;
-                for (int j = 0; j + 1 < shape.GetSize(); j++)
+                if (!Near(boxes[i], cursor, EdgeRadius)) continue;
+                PointF[] sp = screen[i];
+                if (sp == null) continue;
+                int segs = SegmentCount(shape, sp.Length);
+                bool partlyBehind = false;
+                foreach (PointF q in sp) if (float.IsNaN(q.X)) { partlyBehind = true; break; }
+                for (int j = 0; j < segs; j++)
                 {
-                    Point3D a = shape.Absolute(j), b = shape.Absolute(j + 1);
+                    // Screen distance to the projected edge rules out almost every edge cheaply
+                    // (edges crossing behind the camera always get the exact test).
+                    if (!partlyBehind && !(Scene.DistanceToSegment(cursor, sp[j], sp[(j + 1) % sp.Length]) <= EdgeRadius + 0.5f)) continue;
+                    Point3D a = shape.Absolute(j), b = shape.Absolute((j + 1) % sp.Length);
                     Point3D onEdge = ClosestOnSegmentToRay(rayO, rayD, a, b);
                     if (onEdge == null) continue;
                     float d = ScreenDistance(scene, onEdge, cursor);

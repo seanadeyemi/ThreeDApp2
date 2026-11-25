@@ -21,7 +21,7 @@ namespace ThreeDApp2
         public Matrix3D Orientation = Matrix3D.Identity();
 
         // Light comes from over the viewer's shoulder.
-        static readonly double[] LightDir = Normalize(new double[] { -0.4, 0.5, -1.0 });
+        public static readonly double[] LightDir = Normalize(new double[] { -0.4, 0.5, -1.0 });
 
         public void Rotate(Axis axis, double degrees)
         {
@@ -344,6 +344,9 @@ namespace ThreeDApp2
             for (int i = frame.Count - 1; i >= 0; i--)
             {
                 ShapeScreenPoints f = frame[i];
+                RectangleF b = f.Bounds;
+                if (screen.X < b.Left - lineTolerance || screen.X > b.Right + lineTolerance ||
+                    screen.Y < b.Top - lineTolerance || screen.Y > b.Bottom + lineTolerance) continue;
                 if (f.Closed)
                 {
                     if (PointInPolygon(f.PtList, screen)) return f.LayerIndex;
@@ -409,45 +412,175 @@ namespace ThreeDApp2
             return true;
         }
 
+        #region Frame building and cache
+
         /// <summary>
-        /// Projects every layer and returns them sorted farthest first, ready to paint in order.
-        /// Each entry remembers which layer it came from, so sorting never mixes layers up.
+        /// Bump after changing any shape (points, colour, hidden flag, adding/removing shapes) so
+        /// cached frames and GPU geometry are rebuilt. Replacing <see cref="Layers"/> is noticed by itself.
         /// </summary>
+        public int GeometryVersion;
+        public void Touch() { GeometryVersion++; }
+
+        List<ShapeScreenPoints> mFrame;
+        PointF[][] mScreen;           // Per layer: every vertex on screen (NaN if behind the camera); null if hidden
+        RectangleF[] mScreenBounds;   // Per layer: box around its on-screen vertices
+        double[] mFrameKey;
+        List<MyPolygon> mFrameLayers;
+
+        double[] ViewKey()
+        {
+            Matrix3D o = Orientation;
+            return new double[]
+            {
+                o[0, 0], o[0, 1], o[0, 2], o[1, 0], o[1, 1], o[1, 2], o[2, 0], o[2, 1], o[2, 2],
+                Camera.X, Camera.Y, Camera.Z, Pivot.X, Pivot.Y, Pivot.Z, Scale, ScreenZ, NearPlane,
+                GeometryVersion, Layers.Count,
+            };
+        }
+
+        bool FrameIsCurrent()
+        {
+            if (mFrame == null || !ReferenceEquals(mFrameLayers, Layers)) return false;
+            double[] key = ViewKey();
+            for (int i = 0; i < key.Length; i++) if (key[i] != mFrameKey[i]) return false;
+            return true;
+        }
+
+        /// <summary>The current frame, rebuilt only when the view or the shapes have changed.</summary>
+        public List<ShapeScreenPoints> Frame()
+        {
+            if (!FrameIsCurrent()) Rebuild();
+            return mFrame;
+        }
+
+        /// <summary>On-screen vertices of a layer for the current view (NaN where behind the camera), or null if hidden.</summary>
+        public PointF[] ScreenVertices(int layer)
+        {
+            if (!FrameIsCurrent()) Rebuild();
+            return layer >= 0 && layer < mScreen.Length ? mScreen[layer] : null;
+        }
+
+        public RectangleF ScreenBounds(int layer)
+        {
+            if (!FrameIsCurrent()) Rebuild();
+            return mScreenBounds[layer];
+        }
+
+        /// <summary>All layers' on-screen vertices and boxes at once (one freshness check instead of one per layer).</summary>
+        public void GetScreenCache(out PointF[][] vertices, out RectangleF[] bounds)
+        {
+            if (!FrameIsCurrent()) Rebuild();
+            vertices = mScreen;
+            bounds = mScreenBounds;
+        }
+
+        /// <summary>Projects every layer and returns them sorted farthest first, ready to paint in order.</summary>
         public List<ShapeScreenPoints> BuildFrame()
         {
-            List<ShapeScreenPoints> frame = new List<ShapeScreenPoints>();
-            for (int i = 0; i < Layers.Count; i++)
+            return new List<ShapeScreenPoints>(Frame());
+        }
+
+        void Rebuild()
+        {
+            // world = O (m - P) + P, eye = world - Camera  =>  eye = O m + t
+            Matrix3D o = Orientation;
+            double a00 = o[0, 0], a01 = o[0, 1], a02 = o[0, 2], a10 = o[1, 0], a11 = o[1, 1], a12 = o[1, 2], a20 = o[2, 0], a21 = o[2, 1], a22 = o[2, 2];
+            double px = Pivot.X, py = Pivot.Y, pz = Pivot.Z;
+            double tx = px - (a00 * px + a01 * py + a02 * pz) - Camera.X;
+            double ty = py - (a10 * px + a11 * py + a12 * pz) - Camera.Y;
+            double tz = pz - (a20 * px + a21 * py + a22 * pz) - Camera.Z;
+            double k = Scale * ScreenZ, near = NearPlane;
+            double lx = LightDir[0], ly = LightDir[1], lz = LightDir[2];
+
+            int n = Layers.Count;
+            List<ShapeScreenPoints> frame = new List<ShapeScreenPoints>(n);
+            mScreen = new PointF[n][];
+            mScreenBounds = new RectangleF[n];
+            double[] ex = new double[16], ey = new double[16], ez = new double[16];
+            for (int i = 0; i < n; i++)
             {
                 MyPolygon layer = Layers[i];
                 if (layer.Hidden) continue;
                 int count = VertexCount(layer);
-                if (count < 2) continue;
-
-                List<Point3D> world = new List<Point3D>();
-                for (int j = 0; j < count; j++)
-                    world.Add(ToWorld(layer.Absolute(j)));
-
-                ShapeScreenPoints shape = new ShapeScreenPoints();
-                shape.LayerIndex = i;
-                shape.Closed = layer.IsClosedFace;
+                if (count < 1) continue;
+                if (ex.Length < count) { ex = new double[count * 2]; ey = new double[count * 2]; ez = new double[count * 2]; }
+                List<Point3D> pts = layer.RawPoints;
+                Point3D off = layer.mPosition;
+                double ox = off.X, oy = off.Y, oz = off.Z;
+                PointF[] sp = new PointF[count];
                 bool visible = true;
                 double depth = 0;
-                foreach (Point3D w in world)
+                float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+                for (int j = 0; j < count; j++)
                 {
-                    PointF pt;
-                    if (!TryProject(w, out pt)) { visible = false; break; }
-                    shape.PtList.Add(pt);
-                    depth += w.Z - Camera.Z;
+                    Point3D p = pts[j];
+                    double mx = p.X + ox, my = p.Y + oy, mz = p.Z + oz;
+                    double x = a00 * mx + a01 * my + a02 * mz + tx;
+                    double y = a10 * mx + a11 * my + a12 * mz + ty;
+                    double z = a20 * mx + a21 * my + a22 * mz + tz;
+                    ex[j] = x; ey[j] = y; ez[j] = z;
+                    depth += z;
+                    if (z < near) { visible = false; sp[j] = new PointF(float.NaN, float.NaN); continue; }
+                    float sx = (float)(k * x / z), sy = (float)(-k * y / z);
+                    sp[j] = new PointF(sx, sy);
+                    if (sx < minX) minX = sx; if (sx > maxX) maxX = sx;
+                    if (sy < minY) minY = sy; if (sy > maxY) maxY = sy;
                 }
-                if (!visible) continue;
+                mScreen[i] = sp;
+                // A shape reaching behind the camera can cross the screen anywhere, so it gets no
+                // box (callers then never rule it out by position).
+                mScreenBounds[i] = !visible ? new RectangleF(-1e9f, -1e9f, 2e9f, 2e9f)
+                                 : minX <= maxX ? RectangleF.FromLTRB(minX, minY, maxX, maxY) : RectangleF.Empty;
+                if (!visible || count < 2) continue;
 
-                shape.Z = (float)(depth / count);
-                shape.Shade = (float)Shade(world);
-                frame.Add(shape);
+                // Lambert shade from the face normal (Newell's method; translation doesn't change it).
+                double nx = 0, ny = 0, nz = 0;
+                for (int j = 0; j < count; j++)
+                {
+                    int q = j + 1 == count ? 0 : j + 1;
+                    nx += (ey[j] - ey[q]) * (ez[j] + ez[q]);
+                    ny += (ez[j] - ez[q]) * (ex[j] + ex[q]);
+                    nz += (ex[j] - ex[q]) * (ey[j] + ey[q]);
+                }
+                double len = Math.Sqrt(nx * nx + ny * ny + nz * nz);
+                double shade = len < 1e-9 ? 1.0 : 0.35 + 0.65 * Math.Abs((nx * lx + ny * ly + nz * lz) / len);
+
+                frame.Add(new ShapeScreenPoints
+                {
+                    Pts = sp,
+                    Bounds = mScreenBounds[i],
+                    LayerIndex = i,
+                    Closed = layer.IsClosedFace,
+                    Z = (float)(depth / count),
+                    Shade = (float)shade,
+                });
             }
-            // Stable sort: equal depths keep layer order instead of flickering between frames.
-            return frame.OrderByDescending(f => f.Z).ThenBy(f => f.LayerIndex).ToList();
+            // Farthest first; equal depths keep layer order so nothing flickers between frames.
+            // Sorting packed integer keys is several times faster than a comparison delegate.
+            ulong[] keys = new ulong[frame.Count];
+            for (int i = 0; i < keys.Length; i++)
+            {
+                uint bits = new FloatBits { F = frame[i].Z }.U;
+                uint ordered = (bits & 0x80000000u) != 0 ? ~bits : bits | 0x80000000u;   // Ascending float order
+                keys[i] = ((ulong)~ordered << 32) | (uint)i;                             // Descending depth, then list order
+            }
+            Array.Sort(keys);
+            List<ShapeScreenPoints> sorted = new List<ShapeScreenPoints>(frame.Count);
+            foreach (ulong key in keys) sorted.Add(frame[(int)(uint)key]);
+            frame = sorted;
+            mFrame = frame;
+            mFrameLayers = Layers;
+            mFrameKey = ViewKey();
         }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]
+        struct FloatBits
+        {
+            [System.Runtime.InteropServices.FieldOffset(0)] public float F;
+            [System.Runtime.InteropServices.FieldOffset(0)] public uint U;
+        }
+
+        #endregion
 
         /// <summary>Number of distinct vertices, i.e. without the repeated closing vertex.</summary>
         public static int VertexCount(Polygon polygon)

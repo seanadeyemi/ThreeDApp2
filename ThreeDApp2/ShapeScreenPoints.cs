@@ -6,7 +6,10 @@ namespace ThreeDApp2
 {
     public class ShapeScreenPoints : IComparable<ShapeScreenPoints>
     {
-        public List<PointF> PtList = new List<PointF>();
+        public PointF[] Pts = Empty;
+        static readonly PointF[] Empty = new PointF[0];
+        public RectangleF Bounds;  // Screen box around Pts, for quick rejection
+        public IList<PointF> PtList { get { return Pts; } }
         public float Z;          // Average distance from the camera
         public int LayerIndex;   // Which layer these points belong to
         public float Shade = 1;  // 0..1 lighting factor

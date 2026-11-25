@@ -117,7 +117,10 @@ namespace ThreeDApp2
         private void CancelOperation()
         {
             if (mContinuing >= 0 && mContinuing < mScene.Layers.Count)
+            {
                 mScene.Layers[mContinuing].Hidden = false;
+                mScene.Touch();
+            }
             if (mDragShape >= 0 && !mDragChanged) mUndo.DiscardLast();
             else if (mDragShape >= 0) Committed();
             mDraft.Clear();
@@ -383,6 +386,7 @@ namespace ThreeDApp2
             if (mDragVertex == 0 && mDragClosed)
                 shape[shape.GetSize() - 1] = p.Clone();
             mDragChanged = true;
+            mScene.Touch();
         }
 
         private void InsertVertexOnSelectedEdge()
@@ -431,6 +435,7 @@ namespace ThreeDApp2
                     mContinuing = idx;
                     mDraft.AddRange(Sketch.OrientedPoints(mScene.Layers[idx], atStart, true));
                     mScene.Layers[idx].Hidden = true;
+                    mScene.Touch();
                 }
                 else
                 {

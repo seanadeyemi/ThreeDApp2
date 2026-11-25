@@ -44,7 +44,10 @@ namespace ThreeDApp2
                 sb.AppendLine("shape " + (closed ? "1" : "0") + " " + color + " " + shape.GroupId.ToString(Inv) + " " + name);
                 int count = Scene.VertexCount(shape);
                 for (int j = 0; j < count; j++)
-                    sb.AppendLine("v " + P(shape.Absolute(j)));
+                {
+                    Point3D v = shape.Absolute(j);
+                    sb.Append("v ").Append(F(v.X)).Append(' ').Append(F(v.Y)).Append(' ').Append(F(v.Z)).Append('\n');
+                }
                 sb.AppendLine("end");
             }
             return sb.ToString();
