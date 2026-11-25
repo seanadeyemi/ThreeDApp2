@@ -23,7 +23,7 @@ namespace ThreeDApp2
         int mXformCopiesFrom = -1;              // Ctrl+drag: copies were appended from this index
         TransformValue mXformValue;
         HashSet<int> mXformSkip;                // Shapes the centre-handle snapping must ignore
-        int mXformPrevSelected;
+        List<int> mXformPrevSelection;
         double mRingStart;                      // Rotate: where on the ring the drag started (for the wedge)
 
         // The last finished transform, so a typed value can replace it ("drag a ring, type 45, Enter")
@@ -36,13 +36,13 @@ namespace ThreeDApp2
             public TransformValue Value;
             public HandleHit Handle;
             public long Version;
-            public int Selected;
+            public string Selected;
         }
         XformRecord mLastXform;
 
         // Handles' centre, cached for the selection and geometry it was worked out for
         long mHandlesVersion = -1;
-        int mHandlesSelected = -2;
+        string mHandlesSelected = "";
         object mHandlesLayers;
 
         bool IsTransformTool { get { return mTool == Tool.Move || mTool == Tool.Rotate || mTool == Tool.Scale; } }
@@ -62,11 +62,12 @@ namespace ThreeDApp2
             mHandles.PixelSize = 90f * DeviceDpi / 96f;
             mHandles.MoveStep = mInference.GridEnabled ? mInference.GridSpacing : 0;
             if (mXformDragging || !HandlesShown) return;
-            if (mHandlesVersion != mScene.GeometryVersion || mHandlesSelected != mSelected || !ReferenceEquals(mHandlesLayers, mScene.Layers))
+            string selKey = SelectionKey();
+            if (mHandlesVersion != mScene.GeometryVersion || mHandlesSelected != selKey || !ReferenceEquals(mHandlesLayers, mScene.Layers))
             {
-                mHandles.Center = TransformHandles.BoundsCenter(mScene.Layers, mScene.GroupMembers(mSelected));
+                mHandles.Center = TransformHandles.BoundsCenter(mScene.Layers, SelectionIndices());
                 mHandlesVersion = mScene.GeometryVersion;
-                mHandlesSelected = mSelected;
+                mHandlesSelected = selKey;
                 mHandlesLayers = mScene.Layers;
             }
         }
@@ -90,9 +91,9 @@ namespace ThreeDApp2
             StopSpin();
             mTyped = "";
             PushUndo();
-            mXformIndices = mScene.GroupMembers(mSelected);
+            mXformIndices = SelectionIndices();
             mXformCopiesFrom = -1;
-            mXformPrevSelected = mSelected;
+            mXformPrevSelection = new List<int>(mXformIndices);
             if (hit.Part == HandlePart.Ring) mRingStart = RingStartAngle(hit.Axis);
             if (ModifierKeys.HasFlag(Keys.Control))
             {
@@ -110,8 +111,8 @@ namespace ThreeDApp2
                     mScene.Layers.Add(c);
                 }
                 mXformIndices = copies;
-                mSelected = copies[0];
-                mHandlesSelected = mSelected;
+                SetSelection(copies);
+                mHandlesSelected = SelectionKey();
                 mScene.Touch();
             }
             mXformOriginal = TransformHandles.Snapshot(mScene.Layers, mXformIndices);
@@ -164,7 +165,7 @@ namespace ThreeDApp2
             mLastXform = new XformRecord
             {
                 Mode = mHandles.Mode, Indices = mXformIndices, Original = mXformOriginal, Center = mHandles.Center.Clone(),
-                Value = mXformValue, Handle = handle, Version = mScene.GeometryVersion, Selected = mSelected,
+                Value = mXformValue, Handle = handle, Version = mScene.GeometryVersion, Selected = SelectionKey(),
             };
             UpdateHandles();
         }
@@ -185,7 +186,7 @@ namespace ThreeDApp2
             if (mXformCopiesFrom >= 0)
             {
                 mScene.Layers.RemoveRange(mXformCopiesFrom, mScene.Layers.Count - mXformCopiesFrom);
-                mSelected = mXformPrevSelected < mScene.Layers.Count ? mXformPrevSelected : -1;
+                SetSelection(mXformPrevSelection);
                 mXformCopiesFrom = -1;
             }
             else if (mXformIndices != null)
@@ -196,9 +197,8 @@ namespace ThreeDApp2
         private void TransformSelectClick()
         {
             int hit = mScene.Pick(mCursor, mScene.BuildFrame());
-            mSelected = hit;
+            ClickSelect(hit);
             mSelectOrbit = hit < 0;   // Dragging on empty space orbits the view
-            SyncSelectionUi();
         }
 
         /// <summary>
@@ -212,7 +212,7 @@ namespace ThreeDApp2
             if (!HandlesShown || values == null || values.Length == 0) return false;
             TransformMode mode = mHandles.Mode;
             XformRecord last = mLastXform;
-            bool reuse = last != null && last.Mode == mode && last.Version == mScene.GeometryVersion && last.Selected == mSelected
+            bool reuse = last != null && last.Mode == mode && last.Version == mScene.GeometryVersion && last.Selected == SelectionKey()
                          && ReferenceEquals(mHandlesLayers, mScene.Layers);
 
             Point3D center = reuse ? last.Center : mHandles.Center.Clone();
@@ -258,12 +258,12 @@ namespace ThreeDApp2
             else
             {
                 PushUndo();
-                List<int> indices = mScene.GroupMembers(mSelected);
+                List<int> indices = SelectionIndices();
                 last = new XformRecord
                 {
                     Mode = mode, Indices = indices, Original = TransformHandles.Snapshot(mScene.Layers, indices), Center = center,
                     Handle = mode == TransformMode.Rotate ? new HandleHit(HandlePart.Ring, 1) : new HandleHit(HandlePart.Center, -1),
-                    Selected = mSelected,
+                    Selected = SelectionKey(),
                 };
                 TransformHandles.ApplyToShapes(mScene.Layers, indices, last.Original, value);
             }

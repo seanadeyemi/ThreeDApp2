@@ -31,6 +31,7 @@
             this.components = new System.ComponentModel.Container();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.selectBtn = new System.Windows.Forms.ToolStripButton();
+            this.marqueeBtn = new System.Windows.Forms.ToolStripButton();
             this.lineBtn = new System.Windows.Forms.ToolStripButton();
             this.rectBtn = new System.Windows.Forms.ToolStripButton();
             this.circleBtn = new System.Windows.Forms.ToolStripButton();
@@ -90,6 +91,7 @@
             this.toolStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.selectBtn,
+            this.marqueeBtn,
             this.lineBtn,
             this.rectBtn,
             this.circleBtn,
@@ -139,7 +141,15 @@
             this.selectBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.selectBtn.Text = "Select";
             this.selectBtn.Click += new System.EventHandler(this.selectBtn_Click);
-            this.selectBtn.ToolTipText = "Select (S): pick shapes, drag vertices, double-click an edge to add one";
+            this.selectBtn.ToolTipText = "Select (S): pick shapes, drag vertices, double-click an edge to add one. Shift-click selects more";
+            //
+            // marqueeBtn
+            //
+            this.marqueeBtn.Name = "marqueeBtn";
+            this.marqueeBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.marqueeBtn.Text = "Box Select";
+            this.marqueeBtn.Click += new System.EventHandler(this.marqueeBtn_Click);
+            this.marqueeBtn.ToolTipText = "Box Select (B): drag left to right to select shapes fully inside, right to left for anything the box touches. Shift adds, Ctrl removes";
             //
             // lineBtn
             //
@@ -499,6 +509,7 @@
         private System.Windows.Forms.ToolStripButton circleBtn;
         private System.Windows.Forms.ToolStripButton pushPullBtn;
         private System.Windows.Forms.ToolStripButton moveBtn;
+        private System.Windows.Forms.ToolStripButton marqueeBtn;
         private System.Windows.Forms.ToolStripButton rotateBtn;
         private System.Windows.Forms.ToolStripButton scaleBtn;
         private System.Windows.Forms.ToolStripButton panBtn;

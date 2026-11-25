@@ -159,7 +159,7 @@ namespace ThreeDApp2
             toolStrip1.ImageScalingSize = new Size(size, size);
             var icons = new Dictionary<ToolStripItem, string>
             {
-                { selectBtn, "select" }, { lineBtn, "line" }, { rectBtn, "rectangle" }, { circleBtn, "circle" },
+                { selectBtn, "select" }, { marqueeBtn, "marquee" }, { lineBtn, "line" }, { rectBtn, "rectangle" }, { circleBtn, "circle" },
                 { pushPullBtn, "pushpull" }, { moveBtn, "move" }, { rotateBtn, "rotate" }, { scaleBtn, "scale" }, { panBtn, "pan" }, { orbitBtn, "orbit" }, { importBtn, "import" }, { exportBtn, "export" },
                 { undoBtn, "undo" }, { redoBtn, "redo" },
                 { frontViewBtn, "view-front" }, { topViewBtn, "view-top" }, { leftViewBtn, "view-left" },
@@ -506,6 +506,7 @@ namespace ThreeDApp2
         private void circleBtn_Click(object sender, EventArgs e) { SetTool(Tool.Circle); }
         private void pushPullBtn_Click(object sender, EventArgs e) { SetTool(Tool.PushPull); }
         private void moveBtn_Click(object sender, EventArgs e) { SetTool(Tool.Move); }
+        private void marqueeBtn_Click(object sender, EventArgs e) { SetTool(Tool.Marquee); }
         private void rotateBtn_Click(object sender, EventArgs e) { SetTool(Tool.Rotate); }
         private void scaleBtn_Click(object sender, EventArgs e) { SetTool(Tool.Scale); }
         private void undoBtn_Click(object sender, EventArgs e) { Undo(); }
@@ -562,7 +563,7 @@ namespace ThreeDApp2
                 dlg.Color = EffectiveColor(mSelected);
                 if (dlg.ShowDialog(this) != DialogResult.OK) return;
                 PushUndo();
-                foreach (int i in mScene.GroupMembers(mSelected))
+                foreach (int i in SelectionIndices())
                     mScene.Layers[i].Color = dlg.Color;
                 Committed();
             }
@@ -600,7 +601,7 @@ namespace ThreeDApp2
         private void shapesCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (mUpdatingUi) return;
-            mSelected = shapesCombo.SelectedIndex;
+            SetSelection(shapesCombo.SelectedIndex >= 0 ? new[] { shapesCombo.SelectedIndex } : new int[0]);
             viewport.Focus();
             viewport.Invalidate();
         }
@@ -719,6 +720,7 @@ namespace ThreeDApp2
 
                 // Tools
                 case Keys.S: SetTool(Tool.Select); break;
+                case Keys.B: SetTool(Tool.Marquee); break;
                 case Keys.L: SetTool(Tool.Line); break;
                 case Keys.R: SetTool(Tool.Rectangle); break;
                 case Keys.C: SetTool(Tool.Circle); break;
@@ -892,7 +894,7 @@ namespace ThreeDApp2
             foreach (float v in new[] { mScene.Camera.X, mScene.Camera.Y, mScene.Camera.Z, mScene.Pivot.X, mScene.Pivot.Y, mScene.Pivot.Z, mScene.Scale, mScene.ScreenZ, mWorkPlaneOffset, mInference.GridSpacing })
                 k.Append(v.ToString("R", CultureInfo.InvariantCulture)).Append(',');
             k.Append(mScene.GeometryVersion).Append(',').Append(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(mScene.Layers)).Append(',')
-             .Append(mScene.Layers.Count).Append(',').Append(mSelected).Append(',').Append((int)mWorkPlane).Append(',')
+             .Append(mScene.Layers.Count).Append(',').Append(SelectionKey()).Append(',').Append((int)mWorkPlane).Append(',')
              .Append(mWireframe).Append(mTranslucent).Append(mShowGrid).Append(mShowAxes).Append(mSettings.GroundAndSky)
              .Append(mGpu != null).Append(mScene.Orthographic).Append(mDraftQuality).Append(',').Append(viewport.ClientSize.Width).Append('x').Append(viewport.ClientSize.Height);
             return k.ToString();
@@ -923,7 +925,7 @@ namespace ThreeDApp2
             GraphicsState state = g.Save();
             g.TranslateTransform(w / 2f, h / 2f);
 
-            if (mHoverIndex >= 0 && mHoverIndex < mScene.Layers.Count && (mSelected < 0 || !mScene.GroupMembers(mSelected).Contains(mHoverIndex)))
+            if (mHoverIndex >= 0 && mHoverIndex < mScene.Layers.Count && (mSelected < 0 || !SelectionIndices().Contains(mHoverIndex)))
             {
                 PointF[] pts = mScene.ScreenVertices(mHoverIndex);
                 if (pts != null && pts.Length >= 2 && !Array.Exists(pts, q => float.IsNaN(q.X)))
@@ -932,7 +934,7 @@ namespace ThreeDApp2
             }
 
             // Vertex handles on the selected shape, for dragging.
-            if (mSelected >= 0 && mSelected < mScene.Layers.Count && mTool == Tool.Select)
+            if (mSelected >= 0 && mSelected < mScene.Layers.Count && mTool == Tool.Select && !ExtrasValid)
             {
                 MyPolygon sel = mScene.Layers[mSelected];
                 int count = Scene.VertexCount(sel);
@@ -976,7 +978,7 @@ namespace ThreeDApp2
 
             g.TranslateTransform(w / 2f, h / 2f);
             List<ShapeScreenPoints> frame = mScene.Frame();
-            HashSet<int> selectedGroup = new HashSet<int>(mSelected >= 0 ? mScene.GroupMembers(mSelected) : new List<int>());
+            HashSet<int> selectedGroup = new HashSet<int>(SelectionIndices());
             RectangleF view = new RectangleF(-w / 2f - 4, -h / 2f - 4, w + 8, h + 8);
             Color[] palette = new Color[mScene.Layers.Count];
 
@@ -1136,8 +1138,9 @@ namespace ThreeDApp2
                     mGpu != null ? "GPU, " + mGpuDescription : "Standard",
                     mScene.Orthographic ? "orthographic" : "perspective"),
                 "",
-                "Tools: S select  L line  R rectangle  C circle  P push/pull  M move  Q rotate  E scale  H pan  O orbit   Esc: cancel",
+                "Tools: S select  B box select  L line  R rectangle  C circle  P push/pull  M move  Q rotate  E scale  H pan  O orbit   Esc: cancel",
                 "While drawing: type a length + Enter   Enter/double-click: finish line   Backspace: remove point",
+                "Select several: B and drag a box (left to right: fully inside, right to left: touching), or Shift-click. Shift adds, Ctrl removes",
                 "Move/Rotate/Scale: drag the handles (Shift fine, Ctrl copies), then type an exact distance, angle or factor + Enter",
                 "Middle/right-drag: orbit   Shift+drag: pan   Wheel: zoom to cursor   Corner gizmo: drag to orbit, click an axis to look along it",
                 "X/Y: tilt/turn (Shift reverses)   Z: zoom extents   Ctrl+1..5: views   Home: start view   Space: spin   V / NumPad 5: perspective/ortho",

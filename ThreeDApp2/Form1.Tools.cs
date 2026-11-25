@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 namespace ThreeDApp2
 {
-    public enum Tool { Select, Line, Rectangle, Circle, PushPull, Move, Rotate, Scale, Pan, Orbit }
+    public enum Tool { Select, Marquee, Line, Rectangle, Circle, PushPull, Move, Rotate, Scale, Pan, Orbit }
 
     public enum WorkPlaneKind { Front, Ground, Side }
 
@@ -67,7 +67,7 @@ namespace ThreeDApp2
 
         bool OperationActive
         {
-            get { return mDraft.Count > 0 || mStart != null || mPushFace >= 0 || mMoveIndices != null || mDragShape >= 0 || mXformDragging; }
+            get { return mDraft.Count > 0 || mStart != null || mPushFace >= 0 || mMoveIndices != null || mDragShape >= 0 || mXformDragging || mMarqueeActive; }
         }
 
         private Plane3D WorkPlane()
@@ -85,6 +85,7 @@ namespace ThreeDApp2
             CancelOperation();
             mTool = tool;
             selectBtn.Checked = tool == Tool.Select;
+            marqueeBtn.Checked = tool == Tool.Marquee;
             lineBtn.Checked = tool == Tool.Line;
             rectBtn.Checked = tool == Tool.Rectangle;
             circleBtn.Checked = tool == Tool.Circle;
@@ -119,6 +120,7 @@ namespace ThreeDApp2
         private void CancelOperation()
         {
             CancelTransformDrag();
+            mMarqueeActive = false;
             if (mContinuing >= 0 && mContinuing < mScene.Layers.Count)
             {
                 mScene.Layers[mContinuing].Hidden = false;
@@ -223,6 +225,11 @@ namespace ThreeDApp2
                     mSnap = new SnapResult();
                     break;
 
+                case Tool.Marquee:
+                    mSnap = new SnapResult();
+                    if (!mMarqueeActive) mHoverIndex = mScene.Pick(mCursor, frame);
+                    break;
+
                 case Tool.Rotate:
                 case Tool.Scale:
                     mSnap = new SnapResult();
@@ -265,6 +272,7 @@ namespace ThreeDApp2
             switch (mTool)
             {
                 case Tool.Select: SelectMouseDown(); break;
+                case Tool.Marquee: MarqueeMouseDown(); break;
                 case Tool.Line: if (mSnap.HasPoint) AddLinePoint(mSnap); break;
                 case Tool.Rectangle:
                 case Tool.Circle: ShapeToolClick(); break;
@@ -330,6 +338,11 @@ namespace ThreeDApp2
                 TransformMouseUp();
                 return;
             }
+            if (mMarqueeActive)
+            {
+                MarqueeMouseUp();
+                return;
+            }
             if (mOrbitDragging)
             {
                 mOrbitDragging = false;
@@ -372,7 +385,7 @@ namespace ThreeDApp2
         private void SelectMouseDown()
         {
             // Grab a vertex handle of the selected shape?
-            if (mSelected >= 0 && mSelected < mScene.Layers.Count)
+            if (mSelected >= 0 && mSelected < mScene.Layers.Count && !ExtrasValid)
             {
                 MyPolygon sel = mScene.Layers[mSelected];
                 int count = Scene.VertexCount(sel);
@@ -396,9 +409,8 @@ namespace ThreeDApp2
             }
 
             int hit = mScene.Pick(mCursor, mScene.BuildFrame());
-            mSelected = hit;
+            ClickSelect(hit);
             mSelectOrbit = hit < 0;   // Dragging on empty space orbits the view
-            SyncSelectionUi();
         }
 
         private void MoveDraggedVertex(Point3D p)
@@ -427,8 +439,7 @@ namespace ThreeDApp2
         {
             if (mSelected < 0 || OperationActive) return;
             PushUndo();
-            List<int> members = mScene.GroupMembers(mSelected);
-            members.Sort();
+            List<int> members = SelectionIndices();
             for (int k = members.Count - 1; k >= 0; k--)
                 mScene.Layers.RemoveAt(members[k]);
             mSelected = -1;
@@ -819,6 +830,11 @@ namespace ThreeDApp2
                 case Tool.Scale:
                     hint = TransformHint(out measure);
                     break;
+                case Tool.Marquee:
+                    hint = mMarqueeActive
+                        ? (MarqueeSelect.IsCrossing(mMarqueeStart, mCursor) ? "Box Select (crossing): selects everything the box touches." : "Box Select (window): selects shapes entirely inside the box.")
+                        : "Box Select: drag left to right for shapes fully inside, right to left for anything touched. Shift adds, Ctrl removes.";
+                    break;
                 case Tool.Pan:
                     hint = "Pan: drag to slide the view. Esc or S returns to Select.";
                     break;
@@ -826,9 +842,11 @@ namespace ThreeDApp2
                     hint = "Orbit: drag to turn and tilt the view. Esc or S returns to Select.";
                     break;
                 default:
-                    hint = mSelected >= 0
-                        ? "Select: drag an orange handle to move a vertex, double-click an edge to add one, Del to delete."
-                        : "Select: click a shape. Drag empty space or right-drag to orbit.";
+                    hint = ExtrasValid
+                        ? SelectionCount + " shapes selected: M / Q / E to move, rotate or scale them together, Del to delete. Shift-click adds or removes."
+                        : mSelected >= 0
+                        ? "Select: drag an orange handle to move a vertex, double-click an edge to add one, Del to delete. Shift-click adds more."
+                        : "Select: click a shape (Shift-click for more, B to box select). Drag empty space or right-drag to orbit.";
                     break;
             }
             if (mSnap.HasPoint && mSnap.Label.Length > 0) hint = mSnap.Label + "  |  " + hint;
@@ -912,6 +930,7 @@ namespace ThreeDApp2
                 }
             }
             DrawTransformHandles(g);
+            DrawMarquee(g);
             DrawSnapMarker(g);
         }
 
