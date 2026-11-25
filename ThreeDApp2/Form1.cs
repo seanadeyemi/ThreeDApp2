@@ -17,6 +17,10 @@ namespace ThreeDApp2
         const float LayerSpacing = 10;   // Gap between layers added with N
         const float GridExtent = 30;     // Grid is drawn from -GridExtent to +GridExtent
         const float AxisLength = 500;
+        const double DefaultFov = 35;          // SketchUp's default field of view
+        const double DefaultYaw = -35;         // Three-quarter view from the front-left...
+        const double DefaultPitch = 25;        // ...and a little above
+        const double OrbitDegreesPerPixel = 0.4;
 
         // One colour per layer, cycled if there are more layers than colours.
         static readonly Color[] LayerColors =
@@ -39,6 +43,7 @@ namespace ThreeDApp2
         bool mTranslucent;
         bool mShowAxes = true;
         bool mShowGrid = true;
+        double mFov = DefaultFov;
         Timer mSpinTimer;
         int mNextColor = 3;
         string mFilePath;          // File chosen with Save As / Open, if any
@@ -66,10 +71,11 @@ namespace ThreeDApp2
             viewport.MouseLeave += (s, e) => { mCursorInside = false; viewport.Invalidate(); };
             this.KeyDown += Form1_KeyDown;
             this.FormClosing += (s, e) => Autosave();
+            viewport.Resize += (s, e) => { ApplyFieldOfView(); viewport.Invalidate(); };
 
             mSpinTimer = new Timer(components);
             mSpinTimer.Interval = 30;
-            mSpinTimer.Tick += (s, e) => { mScene.Rotate(Axis.Y, 1.5); viewport.Invalidate(); };
+            mSpinTimer.Tick += (s, e) => { mScene.SetOrbit(mScene.Yaw - 1.5, mScene.Pitch); viewport.Invalidate(); };
 
             mUpdatingUi = true;
             planeCombo.Items.AddRange(new object[] { "Front (XY)", "Ground (XZ)", "Side (YZ)" });
@@ -79,6 +85,8 @@ namespace ThreeDApp2
 
             if (!LoadAutosave())
                 ResetScene();
+            // Always open on the standard start view, like SketchUp, even when restoring a drawing.
+            ResetView();
             mUndo.Clear();
             SetTool(Tool.Select);
             RefreshShapesCombo();
@@ -98,15 +106,29 @@ namespace ThreeDApp2
             ResetView();
         }
 
-        /// <summary>Looks straight at the middle of everything in the scene, unrotated.</summary>
+        /// <summary>
+        /// SketchUp-style start view: a perspective three-quarter view from the front-left and a
+        /// little above, centred on the model and the origin with everything in frame.
+        /// </summary>
         private void ResetView()
         {
-            mScene.Pivot = mScene.Layers.Count > 0 ? mScene.Centroid() : new Point3D(0, 0, 30);
-            mScene.Camera = new Point3D(mScene.Pivot.X, mScene.Pivot.Y, Math.Min(0, mScene.Pivot.Z - 33.3f));
-            mScene.ResetOrientation();
-            mScene.ScreenZ = 30;
-            mScene.Scale = 10;
+            mFov = DefaultFov;
+            ApplyFieldOfView();
+            mScene.SetOrbit(DefaultYaw, DefaultPitch);
+            // Like SketchUp, keep the origin (where the axes meet) in the start view.
+            mScene.ZoomExtents(mFov, Aspect(), true);
             viewport.Invalidate();
+        }
+
+        private float Aspect()
+        {
+            return viewport.ClientSize.Width / (float)Math.Max(1, viewport.ClientSize.Height);
+        }
+
+        /// <summary>Recomputes the projection for the current field of view and window height.</summary>
+        private void ApplyFieldOfView()
+        {
+            if (mScene != null) mScene.SetFieldOfView(mFov, viewport.ClientSize.Height);
         }
 
         private void AddHouseLayer(float z)
@@ -133,32 +155,33 @@ namespace ThreeDApp2
             Committed();
         }
 
-        private void SetView(Matrix3D orientation)
+        // Standard views as (turn, tilt) in degrees.
+        private void SetView(double yaw, double pitch)
         {
             mSpinTimer.Enabled = false;
-            mScene.Orientation = orientation;
+            mScene.SetOrbit(yaw, pitch);
             viewport.Invalidate();
         }
 
-        private static Matrix3D FrontView() { return Matrix3D.Identity(); }
-        private static Matrix3D TopView() { return Matrix3D.Rotation(Axis.X, 90); }
-        private static Matrix3D LeftView() { return Matrix3D.Rotation(Axis.Y, -90); }
-        private static Matrix3D RightView() { return Matrix3D.Rotation(Axis.Y, 90); }
-        private static Matrix3D IsoView() { return Matrix3D.Rotation(Axis.X, 30) * Matrix3D.Rotation(Axis.Y, -45); }
+        private void FrontView() { SetView(0, 0); }
+        private void TopView() { SetView(0, 90); }
+        private void LeftView() { SetView(-90, 0); }
+        private void RightView() { SetView(90, 0); }
+        private void IsoView() { SetView(DefaultYaw, DefaultPitch); }
 
+        /// <summary>
+        /// Turntable orbit: horizontal drag turns the model around its vertical axis, vertical drag
+        /// tilts it (clamped at straight above / below). There is no roll, so the view stays level.
+        /// </summary>
         private void Orbit(int dx, int dy)
         {
-            if (dx != 0) mScene.Rotate(Axis.Y, -dx * 0.5);
-            if (dy != 0) mScene.Rotate(Axis.X, -dy * 0.5);
+            mScene.SetOrbit(mScene.Yaw - dx * OrbitDegreesPerPixel, mScene.Pitch + dy * OrbitDegreesPerPixel);
         }
 
-        /// <summary>Slides the camera sideways so the scene follows the mouse.</summary>
+        /// <summary>Slides the view so the scene follows the mouse; the orbit centre moves with it.</summary>
         private void Pan(int dx, int dy)
         {
-            float depth = Math.Max(1f, mScene.ToWorld(mScene.Pivot).Z - mScene.Camera.Z);
-            float worldPerPixel = depth / (mScene.Scale * mScene.ScreenZ);
-            mScene.Camera.X -= dx * worldPerPixel;
-            mScene.Camera.Y += dy * worldPerPixel;
+            mScene.PanPixels(dx, dy);
         }
 
         private Color EffectiveColor(int index)
@@ -289,6 +312,8 @@ namespace ThreeDApp2
                     Scene loaded = SceneFile.Load(dlg.FileName);
                     CancelOperation();
                     mScene = loaded;
+                    mScene.DeriveOrbit();
+                    ApplyFieldOfView();
                     mUndo.Clear();
                     mSelected = -1;
                     mFilePath = dlg.FileName;
@@ -314,11 +339,11 @@ namespace ThreeDApp2
         private void moveBtn_Click(object sender, EventArgs e) { SetTool(Tool.Move); }
         private void undoBtn_Click(object sender, EventArgs e) { Undo(); }
         private void redoBtn_Click(object sender, EventArgs e) { Redo(); }
-        private void frontViewBtn_Click(object sender, EventArgs e) { SetView(FrontView()); }
-        private void topViewBtn_Click(object sender, EventArgs e) { SetView(TopView()); }
-        private void leftViewBtn_Click(object sender, EventArgs e) { SetView(LeftView()); }
-        private void rightViewBtn_Click(object sender, EventArgs e) { SetView(RightView()); }
-        private void isoViewBtn_Click(object sender, EventArgs e) { SetView(IsoView()); }
+        private void frontViewBtn_Click(object sender, EventArgs e) { FrontView(); }
+        private void topViewBtn_Click(object sender, EventArgs e) { TopView(); }
+        private void leftViewBtn_Click(object sender, EventArgs e) { LeftView(); }
+        private void rightViewBtn_Click(object sender, EventArgs e) { RightView(); }
+        private void isoViewBtn_Click(object sender, EventArgs e) { IsoView(); }
         private void deleteBtn_Click(object sender, EventArgs e) { DeleteSelected(); }
 
         private void gridBtn_Click(object sender, EventArgs e)
@@ -445,11 +470,11 @@ namespace ThreeDApp2
                     case Keys.S: SaveAs(); break;
                     case Keys.O: OpenFile(); break;
                     case Keys.N: NewScene(); break;
-                    case Keys.D1: SetView(FrontView()); break;
-                    case Keys.D2: SetView(TopView()); break;
-                    case Keys.D3: SetView(LeftView()); break;
-                    case Keys.D4: SetView(RightView()); break;
-                    case Keys.D5: SetView(IsoView()); break;
+                    case Keys.D1: FrontView(); break;
+                    case Keys.D2: TopView(); break;
+                    case Keys.D3: LeftView(); break;
+                    case Keys.D4: RightView(); break;
+                    case Keys.D5: IsoView(); break;
                     default: return;
                 }
                 e.Handled = e.SuppressKeyPress = true;
@@ -466,7 +491,7 @@ namespace ThreeDApp2
                 return;
             }
 
-            float delta = e.Shift ? 0.25f : 1f;
+            float panStep = e.Shift ? 5f : 25f;
             double angle = e.Shift ? -10 : 10;
 
             switch (e.KeyCode)
@@ -494,24 +519,24 @@ namespace ThreeDApp2
                 case Keys.P: SetTool(Tool.PushPull); break;
                 case Keys.M: SetTool(Tool.Move); break;
 
-                // Camera
-                case Keys.Right: mScene.Camera.X += delta; break;
-                case Keys.Left: mScene.Camera.X -= delta; break;
-                case Keys.Up: mScene.Camera.Y += delta; break;
-                case Keys.Down: mScene.Camera.Y -= delta; break;
+                // Camera: arrows pan, +/- move in and out, PgUp/PgDn change the field of view
+                case Keys.Right: mScene.PanPixels(-panStep, 0); break;
+                case Keys.Left: mScene.PanPixels(panStep, 0); break;
+                case Keys.Up: mScene.PanPixels(0, panStep); break;
+                case Keys.Down: mScene.PanPixels(0, -panStep); break;
                 case Keys.Add:
                 case Keys.Oemplus:
-                    mScene.Camera.Z += delta; break;
+                    mScene.Dolly(e.Shift ? 0.97f : 0.85f, PointF.Empty); break;
                 case Keys.Subtract:
                 case Keys.OemMinus:
-                    mScene.Camera.Z -= delta; break;
-                case Keys.PageUp: mScene.Scale = Math.Min(100f, mScene.Scale * 1.1f); break;
-                case Keys.PageDown: mScene.Scale = Math.Max(1f, mScene.Scale / 1.1f); break;
+                    mScene.Dolly(e.Shift ? 1 / 0.97f : 1 / 0.85f, PointF.Empty); break;
+                case Keys.PageUp: mFov = Math.Max(10, mFov / 1.1); ApplyFieldOfView(); break;
+                case Keys.PageDown: mFov = Math.Min(120, mFov * 1.1); ApplyFieldOfView(); break;
                 case Keys.Home: mSpinTimer.Enabled = false; ResetView(); break;
 
-                case Keys.X: mScene.Rotate(Axis.X, angle); break;
-                case Keys.Y: mScene.Rotate(Axis.Y, angle); break;
-                case Keys.Z: mScene.Rotate(Axis.Z, angle); break;
+                case Keys.X: mScene.SetOrbit(mScene.Yaw, mScene.Pitch + angle); break;   // Tilt
+                case Keys.Y: mScene.SetOrbit(mScene.Yaw + angle, mScene.Pitch); break;   // Turn
+                case Keys.Z: mScene.ZoomExtents(mFov, Aspect()); break;                            // Zoom extents
 
                 // Display
                 case Keys.Space: mSpinTimer.Enabled = !mSpinTimer.Enabled && !OperationActive; break;
@@ -606,7 +631,8 @@ namespace ThreeDApp2
 
         private void Viewport_MouseWheel(object sender, MouseEventArgs e)
         {
-            mScene.Camera.Z += Math.Sign(e.Delta) * 2f;
+            // Zoom towards the point under the cursor, like SketchUp.
+            mScene.Dolly(e.Delta > 0 ? 0.85f : 1 / 0.85f, ToScene(e.Location));
             UpdateHover();
             viewport.Invalidate();
         }
@@ -757,11 +783,10 @@ namespace ThreeDApp2
 
         private void DrawHud(Graphics g, int visibleLayers)
         {
-            Point3D c = mScene.Camera;
             string[] lines =
             {
-                string.Format("Shapes: {0} ({1} visible)   Camera: ({2:0.##}, {3:0.##}, {4:0.##})   Zoom: {5:0.#}   Tool: {6}",
-                    mScene.Layers.Count, visibleLayers, c.X, c.Y, c.Z, mScene.Scale, mTool),
+                string.Format("Shapes: {0} ({1} visible)   Turn {2:0}°  Tilt {3:0}°  Distance {4:0.#}  FOV {5:0}°   Tool: {6}",
+                    mScene.Layers.Count, visibleLayers, mScene.Yaw, mScene.Pitch, mScene.Distance, mFov, mTool),
                 string.Format("Mode: {0}{1}{2}",
                     mWireframe ? "wireframe" : "filled",
                     mTranslucent && !mWireframe ? ", translucent" : "",
@@ -769,8 +794,8 @@ namespace ThreeDApp2
                 "",
                 "Tools: S select  L line  R rectangle  C circle  P push/pull  M move   Esc: cancel",
                 "While drawing: type a length + Enter   Enter/double-click: finish line   Backspace: remove point",
-                "Right-drag: orbit   Shift+right-drag: pan   Wheel or +/-: forward/back   PgUp/PgDn: zoom",
-                "X/Y/Z: rotate (Shift reverses)   Ctrl+1..5: views   Home: reset view   Space: spin",
+                "Middle/right-drag: orbit   Shift+drag: pan   Wheel: zoom to cursor   Arrows: pan   PgUp/PgDn: field of view",
+                "X/Y: tilt/turn (Shift reverses)   Z: zoom extents   Ctrl+1..5: views   Home: start view   Space: spin",
                 "W wireframe  T translucent  G grid  A axes  N add layer  Del delete  Ctrl+Z/Y  Ctrl+S/O/N  H hide",
             };
 

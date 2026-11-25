@@ -33,6 +33,116 @@ namespace ThreeDApp2
             Orientation = Matrix3D.Identity();
         }
 
+        #region Turntable orbit camera (SketchUp style)
+
+        // The camera always looks straight at Pivot (the orbit target) from Distance away.
+        // Yaw turns around the model's vertical (Y) axis, Pitch tilts up/down and is clamped,
+        // and there is never any roll, so the horizon stays level however much you orbit.
+        public double Yaw;            // Degrees
+        public double Pitch;          // Degrees, -90 (from below) .. 90 (from above)
+        public float Distance = 40;   // Camera to target
+
+        public const double MaxPitch = 90;
+
+        public void SetOrbit(double yaw, double pitch)
+        {
+            Yaw = ((yaw % 360) + 540) % 360 - 180;   // Keep in -180..180
+            Pitch = Math.Max(-MaxPitch, Math.Min(MaxPitch, pitch));
+            ApplyOrbit();
+        }
+
+        /// <summary>Rebuilds Orientation and Camera from Yaw, Pitch, Distance and Pivot.</summary>
+        public void ApplyOrbit()
+        {
+            Orientation = Matrix3D.Rotation(Axis.X, Pitch) * Matrix3D.Rotation(Axis.Y, Yaw);
+            Distance = Math.Max(0.5f, Distance);
+            Camera = new Point3D(Pivot.X, Pivot.Y, Pivot.Z - Distance);
+        }
+
+        /// <summary>Works out Yaw/Pitch/Distance from Orientation and Camera (e.g. after loading a file).</summary>
+        public void DeriveOrbit()
+        {
+            double m00 = Orientation[0, 0], m02 = Orientation[0, 2];
+            double m10 = Orientation[1, 0], m11 = Orientation[1, 1], m12 = Orientation[1, 2];
+            double yawRad = Math.Atan2(m02, m00);
+            double sy = Math.Sin(yawRad), cy = Math.Cos(yawRad);
+            double sp = -m10 * sy + m12 * cy;
+            Yaw = yawRad * 180 / Math.PI;
+            Pitch = Math.Atan2(sp, m11) * 180 / Math.PI;
+            Distance = Math.Max(0.5f, Pivot.Z - Camera.Z);
+            SetOrbit(Yaw, Pitch);
+        }
+
+        /// <summary>Focal length for a vertical field of view on a viewport of the given pixel height.</summary>
+        public void SetFieldOfView(double fovDegrees, float viewportHeight)
+        {
+            double half = Math.Max(1, Math.Min(170, fovDegrees)) * Math.PI / 360;
+            float focal = (float)(Math.Max(1f, viewportHeight) / 2 / Math.Tan(half));
+            Scale = focal / ScreenZ;
+        }
+
+        public float FocalLength { get { return Scale * ScreenZ; } }
+
+        /// <summary>Slides the orbit target so the scene follows the mouse by (dx, dy) pixels.</summary>
+        public void PanPixels(float dx, float dy)
+        {
+            float worldPerPixel = Distance / FocalLength;
+            Point3D move = Orientation.Transpose().Transform(new Point3D(-dx * worldPerPixel, dy * worldPerPixel, 0));
+            Pivot = Pivot + move;
+            ApplyOrbit();
+        }
+
+        /// <summary>
+        /// Moves the camera towards (factor &lt; 1) or away from (factor &gt; 1) the target, drifting the
+        /// target towards the point under the cursor so the zoom heads where you point (like SketchUp).
+        /// </summary>
+        public void Dolly(float factor, PointF cursor)
+        {
+            float newDistance = Math.Max(0.5f, Distance * factor);
+            // Point under the cursor at the target's depth.
+            Point3D o, d;
+            GetModelRay(cursor, out o, out d);
+            Plane3D focus = new Plane3D(Pivot, Orientation.Transpose().Transform(new Point3D(0, 0, 1)));
+            Point3D hit;
+            if (focus.IntersectRay(o, d, out hit))
+                Pivot = Pivot + (hit - Pivot) * (1 - newDistance / Distance);
+            Distance = newDistance;
+            ApplyOrbit();
+        }
+
+        /// <summary>
+        /// Centres the target on everything in the scene (and the origin, if asked) and backs off
+        /// until it all fits.
+        /// </summary>
+        public void ZoomExtents(double fovDegrees, float aspect = 1, bool includeOrigin = false)
+        {
+            List<Point3D> pts = new List<Point3D>();
+            if (includeOrigin) pts.Add(new Point3D(0, 0, 0));
+            foreach (MyPolygon layer in Layers)
+                for (int j = 0; j < layer.GetSize(); j++) pts.Add(layer.Absolute(j));
+            if (pts.Count <= (includeOrigin ? 1 : 0)) { Pivot = new Point3D(0, 0, 0); Distance = 40; ApplyOrbit(); return; }
+
+            float minX = float.MaxValue, minY = float.MaxValue, minZ = float.MaxValue;
+            float maxX = float.MinValue, maxY = float.MinValue, maxZ = float.MinValue;
+            foreach (Point3D p in pts)
+            {
+                minX = Math.Min(minX, p.X); maxX = Math.Max(maxX, p.X);
+                minY = Math.Min(minY, p.Y); maxY = Math.Max(maxY, p.Y);
+                minZ = Math.Min(minZ, p.Z); maxZ = Math.Max(maxZ, p.Z);
+            }
+            Pivot = new Point3D((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
+            float radius = 0;
+            foreach (Point3D p in pts) radius = Math.Max(radius, Point3D.Distance(p, Pivot));
+            radius = Math.Max(radius, 1);
+            // Fit the bounding sphere in the narrower of the two view angles, with a little margin.
+            double half = fovDegrees * Math.PI / 360;
+            half = Math.Min(half, Math.Atan(Math.Tan(half) * Math.Max(0.1f, aspect)));
+            Distance = (float)(radius / Math.Sin(half) * 1.05);
+            ApplyOrbit();
+        }
+
+        #endregion
+
         /// <summary>Centre of all layer vertices (closing vertices ignored).</summary>
         public Point3D Centroid()
         {

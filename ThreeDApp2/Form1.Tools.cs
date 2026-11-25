@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -540,7 +540,7 @@ namespace ThreeDApp2
             }
             // Face seen head-on: use vertical mouse movement instead.
             mPushScreenDir = new PointF(0, -1);
-            mPushPixelsPerUnit = Math.Max(2f, mScene.Scale);
+            mPushPixelsPerUnit = Math.Max(2f, mScene.FocalLength / mScene.Distance);
         }
 
         private List<MyPolygon> PushPullPreview(float distance)
