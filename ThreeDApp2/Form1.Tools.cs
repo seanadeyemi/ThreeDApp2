@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 namespace ThreeDApp2
 {
-    public enum Tool { Select, Line, Rectangle, Circle, PushPull, Move, Pan, Orbit }
+    public enum Tool { Select, Line, Rectangle, Circle, PushPull, Move, Rotate, Scale, Pan, Orbit }
 
     public enum WorkPlaneKind { Front, Ground, Side }
 
@@ -67,7 +67,7 @@ namespace ThreeDApp2
 
         bool OperationActive
         {
-            get { return mDraft.Count > 0 || mStart != null || mPushFace >= 0 || mMoveIndices != null || mDragShape >= 0; }
+            get { return mDraft.Count > 0 || mStart != null || mPushFace >= 0 || mMoveIndices != null || mDragShape >= 0 || mXformDragging; }
         }
 
         private Plane3D WorkPlane()
@@ -90,6 +90,8 @@ namespace ThreeDApp2
             circleBtn.Checked = tool == Tool.Circle;
             pushPullBtn.Checked = tool == Tool.PushPull;
             moveBtn.Checked = tool == Tool.Move;
+            rotateBtn.Checked = tool == Tool.Rotate;
+            scaleBtn.Checked = tool == Tool.Scale;
             panBtn.Checked = tool == Tool.Pan;
             orbitBtn.Checked = tool == Tool.Orbit;
             SetToolCursor();
@@ -116,6 +118,7 @@ namespace ThreeDApp2
 
         private void CancelOperation()
         {
+            CancelTransformDrag();
             if (mContinuing >= 0 && mContinuing < mScene.Layers.Count)
             {
                 mScene.Layers[mContinuing].Hidden = false;
@@ -170,6 +173,7 @@ namespace ThreeDApp2
             List<ShapeScreenPoints> frame = mScene.BuildFrame();
             Plane3D hoverPlane; bool hoverIsFace;
             mHoverIndex = -1;
+            if (mXformDragging) return;   // The drag itself works out the snap
 
             switch (mTool)
             {
@@ -219,13 +223,21 @@ namespace ThreeDApp2
                     mSnap = new SnapResult();
                     break;
 
+                case Tool.Rotate:
+                case Tool.Scale:
+                    mSnap = new SnapResult();
+                    if (!UpdateTransformHover()) mHoverIndex = mScene.Pick(mCursor, frame);
+                    break;
+
                 case Tool.PushPull:
                     if (mPushFace < 0) mHoverIndex = mScene.Pick(mCursor, frame, 6, true);
                     mSnap = new SnapResult();
                     break;
 
                 case Tool.Move:
-                    if (mMoveIndices == null)
+                    if (mMoveIndices == null && UpdateTransformHover())
+                        mSnap = new SnapResult();   // Over a move arrow: nothing else lights up
+                    else if (mMoveIndices == null)
                     {
                         mHoverIndex = mScene.Pick(mCursor, frame);
                         HoverPlane(frame, out hoverPlane, out hoverIsFace);
@@ -257,7 +269,9 @@ namespace ThreeDApp2
                 case Tool.Rectangle:
                 case Tool.Circle: ShapeToolClick(); break;
                 case Tool.PushPull: PushPullClick(); break;
-                case Tool.Move: MoveClick(); break;
+                case Tool.Move: if (mMoveIndices != null || !TransformMouseDown()) MoveClick(); break;
+                case Tool.Rotate:
+                case Tool.Scale: if (!TransformMouseDown()) TransformSelectClick(); break;
                 case Tool.Pan:
                     mPanDragging = true;
                     StopSpin();
@@ -275,6 +289,11 @@ namespace ThreeDApp2
 
         private void ToolMouseMove(MouseEventArgs e, int dx, int dy)
         {
+            if (mXformDragging)
+            {
+                TransformMouseMove();
+                return;
+            }
             if (mTool == Tool.Pan && mPanDragging && e.Button == MouseButtons.Left)
             {
                 Pan(dx, dy);
@@ -285,7 +304,7 @@ namespace ThreeDApp2
                 Orbit(dx, dy);
                 return;
             }
-            if (mTool == Tool.Select && mSelectOrbit && e.Button == MouseButtons.Left)
+            if (mSelectOrbit && e.Button == MouseButtons.Left)
             {
                 Orbit(dx, dy);
                 return;
@@ -306,6 +325,11 @@ namespace ThreeDApp2
         private void ToolMouseUp(MouseEventArgs e)
         {
             mSelectOrbit = false;
+            if (mXformDragging)
+            {
+                TransformMouseUp();
+                return;
+            }
             if (mOrbitDragging)
             {
                 mOrbitDragging = false;
@@ -720,8 +744,16 @@ namespace ThreeDApp2
                         CommitPushPull(mPushDistance < 0 ? -v : v);   // Keep the direction the mouse is pulling
                     break;
                 case Tool.Move:
-                    if (mMoveIndices != null && mMoveDelta.Length() > Sketch.Eps)
-                        CommitMove(mMoveDelta.Normalized() * v);
+                    if (mMoveIndices != null)
+                    {
+                        if (values.Length >= 3) CommitMove(new Point3D(values[0], values[1], values[2]));
+                        else if (mMoveDelta.Length() > Sketch.Eps) CommitMove(mMoveDelta.Normalized() * v);
+                    }
+                    else ApplyTypedTransform(values);
+                    break;
+                case Tool.Rotate:
+                case Tool.Scale:
+                    ApplyTypedTransform(values);
                     break;
             }
             UpdateStatus();
@@ -776,8 +808,16 @@ namespace ThreeDApp2
                     if (mPushFace >= 0) measure = "Distance " + mPushDistance.ToString("0.##");
                     break;
                 case Tool.Move:
-                    hint = mMoveIndices == null ? "Move: click a shape to pick it up (hold Ctrl to copy)." : "Move: click to put it down, or type a distance and press Enter." + (mMoveCopy ? " (copying)" : "");
-                    if (mMoveIndices != null) measure = "Distance " + mMoveDelta.Length().ToString("0.##");
+                    if (mMoveIndices == null) hint = TransformHint(out measure);
+                    else
+                    {
+                        hint = "Move: click to put it down, or type a distance (or x,y,z) and press Enter." + (mMoveCopy ? " (copying)" : "");
+                        measure = "Distance " + mMoveDelta.Length().ToString("0.##");
+                    }
+                    break;
+                case Tool.Rotate:
+                case Tool.Scale:
+                    hint = TransformHint(out measure);
                     break;
                 case Tool.Pan:
                     hint = "Pan: drag to slide the view. Esc or S returns to Select.";
@@ -871,6 +911,7 @@ namespace ThreeDApp2
                         break;
                 }
             }
+            DrawTransformHandles(g);
             DrawSnapMarker(g);
         }
 
