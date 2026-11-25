@@ -20,7 +20,7 @@ namespace ThreeDApp2
     {
         public Point3D Point;
         public SnapKind Kind = SnapKind.None;
-        public int AxisIndex = -1;       // 0 = X (red), 1 = Y (green), 2 = Z (blue) when Kind == Axis
+        public int AxisIndex = -1;       // 0 = X (red), 1 = Y (blue, vertical), 2 = Z (green) when Kind == Axis
         public int LayerIndex = -1;      // Shape the snap came from, for Endpoint / Midpoint / OnEdge
         public int VertexIndex = -1;     // Vertex for Endpoint, first vertex of the edge for Midpoint / OnEdge
 
@@ -37,7 +37,8 @@ namespace ThreeDApp2
                     case SnapKind.OnEdge: return "On Edge";
                     case SnapKind.OnFace: return "On Face";
                     case SnapKind.Grid: return "Grid";
-                    case SnapKind.Axis: return AxisIndex == 0 ? "On Red Axis (X)" : AxisIndex == 1 ? "On Green Axis (Y)" : "On Blue Axis (Z)";
+                    // SketchUp colours: red = X, blue = vertical (Y here), green = depth (Z here).
+                    case SnapKind.Axis: return AxisIndex == 0 ? "On Red Axis (X)" : AxisIndex == 1 ? "On Blue Axis (Y, vertical)" : "On Green Axis (Z)";
                     default: return "";
                 }
             }

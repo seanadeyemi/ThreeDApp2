@@ -141,6 +141,116 @@ namespace ThreeDApp2
             ApplyOrbit();
         }
 
+        /// <summary>
+        /// The launch view: the vertical (Y, blue) axis runs straight up the middle of the window,
+        /// with the model balanced left and right of it and everything (origin included) in view.
+        /// </summary>
+        public void FrameCentered(double fovDegrees, float viewWidth, float viewHeight, double pitch, double preferredYaw)
+        {
+            SetFieldOfView(fovDegrees, viewHeight);
+            List<Point3D> pts = new List<Point3D>();
+            pts.Add(new Point3D(0, 0, 0));
+            float minY = 0, maxY = 0;
+            foreach (MyPolygon layer in Layers)
+                for (int j = 0; j < layer.GetSize(); j++)
+                {
+                    Point3D p = layer.Absolute(j);
+                    pts.Add(p);
+                    minY = Math.Min(minY, p.Y); maxY = Math.Max(maxY, p.Y);
+                }
+            bool empty = pts.Count == 1;
+            if (empty) { minY = 0; maxY = 10; pts.Add(new Point3D(10, 0, 10)); pts.Add(new Point3D(-10, 0, -10)); pts.Add(new Point3D(10, 0, -10)); pts.Add(new Point3D(-10, 0, 10)); }
+
+            // The target sits on the vertical axis, so that axis always projects to the centre column.
+            Pivot = new Point3D(0, (minY + maxY) / 2, 0);
+            float halfW = viewWidth / 2 * 0.88f, halfH = viewHeight / 2 * 0.85f;
+
+            // Big models: search the turn on a sample of the vertices (the final fit uses them all).
+            List<Point3D> sample = pts;
+            if (pts.Count > 1500)
+            {
+                sample = new List<Point3D>();
+                int step = pts.Count / 1500 + 1;
+                for (int i = 0; i < pts.Count; i += step) sample.Add(pts[i]);
+                sample.Add(pts[0]);
+            }
+
+            double bestYaw = preferredYaw, bestCost = double.MaxValue;
+            // An empty scene keeps the preferred turn; otherwise pick the turn that balances the model.
+            for (double yaw = -75; !empty && yaw <= 75; yaw += 1)
+            {
+                SetOrbit(yaw, pitch);
+                FitDistance(sample, halfW, halfH);
+                float l, r, t, b;
+                ScreenBounds(sample, out l, out r, out t, out b);
+                double width = Math.Max(1, r - l);
+                double cost = Math.Abs(r + l) / width + 0.004 * Math.Abs(yaw - preferredYaw);
+                if (cost < bestCost) { bestCost = cost; bestYaw = yaw; }
+            }
+            SetOrbit(bestYaw, pitch);
+            FitDistance(pts, halfW, halfH);
+
+            // Slide the target up/down the axis so the picture is centred vertically too.
+            for (int pass = 0; pass < 6; pass++)
+            {
+                float l, r, t, b;
+                ScreenBounds(pts, out l, out r, out t, out b);
+                float yc = (t + b) / 2;
+                if (Math.Abs(yc) < 0.5f) break;
+                Pivot = new Point3D(0, Pivot.Y - (float)(yc * Distance / FocalLength / Math.Max(0.2, Math.Cos(pitch * Math.PI / 180))), 0);
+                ApplyOrbit();
+                FitDistance(pts, halfW, halfH);
+            }
+        }
+
+        void FitDistance(List<Point3D> pts, float halfW, float halfH)
+        {
+            float lo = 0.5f, hi = 0.5f;
+            Distance = hi; ApplyOrbit();
+            while (!AllInside(pts, halfW, halfH) && hi < 1e6f) { lo = hi; hi *= 2; Distance = hi; ApplyOrbit(); }
+            for (int i = 0; i < 40; i++)
+            {
+                float mid = (lo + hi) / 2;
+                Distance = mid; ApplyOrbit();
+                if (AllInside(pts, halfW, halfH)) hi = mid; else lo = mid;
+            }
+            Distance = hi; ApplyOrbit();
+        }
+
+        bool AllInside(List<Point3D> pts, float halfW, float halfH)
+        {
+            foreach (Point3D p in pts)
+            {
+                PointF s;
+                if (!TryProjectModel(p, out s)) return false;
+                if (Math.Abs(s.X) > halfW || Math.Abs(s.Y) > halfH) return false;
+            }
+            return true;
+        }
+
+        void ScreenBounds(List<Point3D> pts, out float left, out float right, out float top, out float bottom)
+        {
+            left = top = float.MaxValue; right = bottom = float.MinValue;
+            foreach (Point3D p in pts)
+            {
+                PointF s;
+                if (!TryProjectModel(p, out s)) continue;
+                left = Math.Min(left, s.X); right = Math.Max(right, s.X);
+                top = Math.Min(top, s.Y); bottom = Math.Max(bottom, s.Y);
+            }
+            if (left > right) { left = right = top = bottom = 0; }
+        }
+
+        /// <summary>Screen Y (relative to the viewport centre) of the ground plane's horizon.</summary>
+        public float HorizonY()
+        {
+            double y = -FocalLength * Math.Tan(Pitch * Math.PI / 180);
+            return (float)Math.Max(-1e6, Math.Min(1e6, y));
+        }
+
+        /// <summary>Height of the camera above the ground (model Y).</summary>
+        public float CameraHeight() { return ToModel(Camera).Y; }
+
         #endregion
 
         /// <summary>Centre of all layer vertices (closing vertices ignored).</summary>

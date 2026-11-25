@@ -19,7 +19,7 @@ namespace ThreeDApp2
         const float AxisLength = 500;
         const double DefaultFov = 35;          // SketchUp's default field of view
         const double DefaultYaw = -35;         // Three-quarter view from the front-left...
-        const double DefaultPitch = 25;        // ...and a little above
+        const double DefaultPitch = 12;        // ...and a little above
         const double OrbitDegreesPerPixel = 0.4;
 
         // One colour per layer, cycled if there are more layers than colours.
@@ -33,7 +33,13 @@ namespace ThreeDApp2
             Color.FromArgb(72, 209, 204),  // turquoise
         };
 
-        static readonly Color[] AxisColors = { Color.FromArgb(220, 40, 40), Color.FromArgb(30, 160, 60), Color.FromArgb(40, 80, 220) };
+        // SketchUp axis colours: X red, vertical (Y) blue, depth (Z) green.
+        static readonly Color[] AxisColors = { Color.FromArgb(220, 40, 40), Color.FromArgb(40, 80, 220), Color.FromArgb(30, 160, 60) };
+
+        static readonly Color SkyTop = Color.FromArgb(150, 192, 235);
+        static readonly Color SkyHorizon = Color.FromArgb(222, 236, 250);
+        static readonly Color GroundHorizon = Color.FromArgb(206, 201, 184);
+        static readonly Color GroundNear = Color.FromArgb(176, 168, 145);
 
         Scene mScene;
         readonly Inference mInference = new Inference();
@@ -57,6 +63,12 @@ namespace ThreeDApp2
 
         bool mUpdatingUi;
 
+        AppSettings mSettings;
+        readonly string mSettingsPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ThreeDApp2", "settings.ini");
+        Cursor mOpenHandCursor = Cursors.Hand;
+        Cursor mGrabHandCursor = Cursors.Hand;
+
         public Form1()
         {
             InitializeComponent();
@@ -77,16 +89,27 @@ namespace ThreeDApp2
             mSpinTimer.Interval = 30;
             mSpinTimer.Tick += (s, e) => { mScene.SetOrbit(mScene.Yaw - 1.5, mScene.Pitch); viewport.Invalidate(); };
 
+            mSettings = AppSettings.Load(mSettingsPath);
+            ApplyToolbarIcons();
+
             mUpdatingUi = true;
+            centerOnLaunchItem.Checked = mSettings.CenterOnLaunch;
+            groundSkyItem.Checked = mSettings.GroundAndSky;
             planeCombo.Items.AddRange(new object[] { "Front (XY)", "Ground (XZ)", "Side (YZ)" });
             planeCombo.SelectedIndex = (int)mWorkPlane;
             offsetBox.Text = mWorkPlaneOffset.ToString(CultureInfo.CurrentCulture);
             mUpdatingUi = false;
 
-            if (!LoadAutosave())
+            bool restored = LoadAutosave();
+            if (!restored)
                 ResetScene();
-            // Always open on the standard start view, like SketchUp, even when restoring a drawing.
-            ResetView();
+            if (mSettings.CenterOnLaunch || !restored)
+                ResetView();               // Centred start view (the default; can be turned off in Options)
+            else
+            {
+                mScene.DeriveOrbit();      // Carry on from the view saved with the last session
+                ApplyFieldOfView();
+            }
             mUndo.Clear();
             SetTool(Tool.Select);
             RefreshShapesCombo();
@@ -107,17 +130,44 @@ namespace ThreeDApp2
         }
 
         /// <summary>
-        /// SketchUp-style start view: a perspective three-quarter view from the front-left and a
-        /// little above, centred on the model and the origin with everything in frame.
+        /// SketchUp-style start view: a perspective three-quarter view from a little above, with the
+        /// vertical (blue, Y) axis upright in the exact centre, equal space left and right, and the
+        /// whole model in frame.
         /// </summary>
         private void ResetView()
         {
             mFov = DefaultFov;
-            ApplyFieldOfView();
-            mScene.SetOrbit(DefaultYaw, DefaultPitch);
-            // Like SketchUp, keep the origin (where the axes meet) in the start view.
-            mScene.ZoomExtents(mFov, Aspect(), true);
+            mScene.FrameCentered(mFov, viewport.ClientSize.Width, viewport.ClientSize.Height, DefaultPitch, DefaultYaw);
             viewport.Invalidate();
+        }
+
+        /// <summary>Gives every toolbar button its icon, sized for the screen's DPI.</summary>
+        private void ApplyToolbarIcons()
+        {
+            int size = Math.Max(16, (int)Math.Round(24 * DeviceDpi / 96.0));
+            toolStrip1.ImageScalingSize = new Size(size, size);
+            var icons = new Dictionary<ToolStripItem, string>
+            {
+                { selectBtn, "select" }, { lineBtn, "line" }, { rectBtn, "rectangle" }, { circleBtn, "circle" },
+                { pushPullBtn, "pushpull" }, { moveBtn, "move" }, { panBtn, "pan" },
+                { undoBtn, "undo" }, { redoBtn, "redo" },
+                { frontViewBtn, "view-front" }, { topViewBtn, "view-top" }, { leftViewBtn, "view-left" },
+                { rightViewBtn, "view-right" }, { isoViewBtn, "view-iso" },
+                { gridBtn, "grid" }, { axesBtn, "axes" }, { colorBtn, "color" }, { deleteBtn, "delete" },
+                { optionsBtn, "options" },
+            };
+            foreach (var pair in icons)
+                pair.Key.Image = ToolIcons.Render(pair.Value, size);
+
+            int cursorSize = Math.Max(32, size + 8);
+            mOpenHandCursor = ToolIcons.MakeCursor("pan", cursorSize, Cursors.Hand);
+            mGrabHandCursor = ToolIcons.MakeCursor("pan-grab", cursorSize, Cursors.Hand);
+        }
+
+        private void SaveSettings()
+        {
+            try { mSettings.Save(mSettingsPath); }
+            catch (Exception ex) { saveStatus.Text = "Could not save options: " + ex.Message; }
         }
 
         private float Aspect()
@@ -345,6 +395,20 @@ namespace ThreeDApp2
         private void rightViewBtn_Click(object sender, EventArgs e) { RightView(); }
         private void isoViewBtn_Click(object sender, EventArgs e) { IsoView(); }
         private void deleteBtn_Click(object sender, EventArgs e) { DeleteSelected(); }
+        private void panBtn_Click(object sender, EventArgs e) { SetTool(Tool.Pan); }
+
+        private void centerOnLaunchItem_Click(object sender, EventArgs e)
+        {
+            mSettings.CenterOnLaunch = centerOnLaunchItem.Checked;
+            SaveSettings();
+        }
+
+        private void groundSkyItem_Click(object sender, EventArgs e)
+        {
+            mSettings.GroundAndSky = groundSkyItem.Checked;
+            SaveSettings();
+            viewport.Invalidate();
+        }
 
         private void gridBtn_Click(object sender, EventArgs e)
         {
@@ -544,9 +608,8 @@ namespace ThreeDApp2
                 case Keys.T: mTranslucent = !mTranslucent; break;
                 case Keys.G: mShowGrid = !mShowGrid; UpdateToggleButtons(); break;
                 case Keys.A: mShowAxes = !mShowAxes; UpdateToggleButtons(); break;
-                case Keys.H:
-                case Keys.F1:
-                    mShowHud = !mShowHud; break;
+                case Keys.H: SetTool(Tool.Pan); break;
+                case Keys.F1: mShowHud = !mShowHud; break;
                 case Keys.N: AddLayerBehind(); break;
                 default:
                     return;
@@ -584,7 +647,7 @@ namespace ThreeDApp2
             mCursorInside = true;
             if (e.Button == MouseButtons.Right || e.Button == MouseButtons.Middle)
             {
-                if (ModifierKeys.HasFlag(Keys.Shift)) mPanning = true;
+                if (ModifierKeys.HasFlag(Keys.Shift)) { mPanning = true; viewport.Cursor = mGrabHandCursor; }
                 else mOrbiting = true;
                 return;
             }
@@ -612,6 +675,7 @@ namespace ThreeDApp2
         {
             if (e.Button == MouseButtons.Right || e.Button == MouseButtons.Middle)
             {
+                if (mPanning) SetToolCursor();
                 mOrbiting = mPanning = false;
                 return;
             }
@@ -645,6 +709,7 @@ namespace ThreeDApp2
         {
             Graphics g = e.Graphics;
             g.Clear(viewport.BackColor);
+            if (mSettings.GroundAndSky) DrawGroundAndSky(g);
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
             GraphicsState state = g.Save();
@@ -708,6 +773,37 @@ namespace ThreeDApp2
             g.Restore(state);
 
             if (mShowHud) DrawHud(g, frame.Count);
+        }
+
+        /// <summary>
+        /// Sky above the horizon and ground below it. The horizon is where the ground plane (XZ, Y = 0)
+        /// vanishes at infinity, so drawn shapes standing on the ground meet it correctly.
+        /// </summary>
+        private void DrawGroundAndSky(Graphics g)
+        {
+            int w = viewport.ClientSize.Width, h = viewport.ClientSize.Height;
+            if (w <= 0 || h <= 0) return;
+            float horizon = h / 2f + mScene.HorizonY();
+            bool aboveGround = mScene.CameraHeight() >= 0;
+            float sky = Math.Max(0, Math.Min(h, horizon));
+
+            // Sky: fills everything when the camera is below the ground (like SketchUp, the ground is not shown from beneath).
+            float skyBottom = aboveGround ? sky : h;
+            if (skyBottom > 0)
+            {
+                RectangleF r = new RectangleF(0, 0, w, skyBottom);
+                using (LinearGradientBrush b = new LinearGradientBrush(new PointF(0, Math.Min(0, horizon - h)), new PointF(0, horizon + 1), SkyTop, SkyHorizon))
+                    g.FillRectangle(b, r);
+            }
+            if (aboveGround && sky < h)
+            {
+                RectangleF r = new RectangleF(0, sky, w, h - sky);
+                using (LinearGradientBrush b = new LinearGradientBrush(new PointF(0, horizon - 1), new PointF(0, Math.Max(h, horizon + h)), GroundHorizon, GroundNear))
+                    g.FillRectangle(b, r);
+                if (horizon >= 0 && horizon <= h)
+                    using (Pen line = new Pen(Color.FromArgb(120, 120, 130, 140), 1f))
+                        g.DrawLine(line, 0, horizon, w, horizon);
+            }
         }
 
         private static void DrawOutline(Graphics g, Pen pen, PointF[] pts, bool closed)
@@ -792,11 +888,11 @@ namespace ThreeDApp2
                     mTranslucent && !mWireframe ? ", translucent" : "",
                     mSpinTimer.Enabled ? ", spinning" : ""),
                 "",
-                "Tools: S select  L line  R rectangle  C circle  P push/pull  M move   Esc: cancel",
+                "Tools: S select  L line  R rectangle  C circle  P push/pull  M move  H pan   Esc: cancel",
                 "While drawing: type a length + Enter   Enter/double-click: finish line   Backspace: remove point",
                 "Middle/right-drag: orbit   Shift+drag: pan   Wheel: zoom to cursor   Arrows: pan   PgUp/PgDn: field of view",
                 "X/Y: tilt/turn (Shift reverses)   Z: zoom extents   Ctrl+1..5: views   Home: start view   Space: spin",
-                "W wireframe  T translucent  G grid  A axes  N add layer  Del delete  Ctrl+Z/Y  Ctrl+S/O/N  H hide",
+                "W wireframe  T translucent  G grid  A axes  N add layer  Del delete  Ctrl+Z/Y  Ctrl+S/O/N  F1 hide",
             };
 
             using (Font font = new Font("Consolas", 9f))

@@ -36,6 +36,7 @@
             this.circleBtn = new System.Windows.Forms.ToolStripButton();
             this.pushPullBtn = new System.Windows.Forms.ToolStripButton();
             this.moveBtn = new System.Windows.Forms.ToolStripButton();
+            this.panBtn = new System.Windows.Forms.ToolStripButton();
             this.toolSep1 = new System.Windows.Forms.ToolStripSeparator();
             this.undoBtn = new System.Windows.Forms.ToolStripButton();
             this.redoBtn = new System.Windows.Forms.ToolStripButton();
@@ -57,6 +58,10 @@
             this.shapesCombo = new System.Windows.Forms.ToolStripComboBox();
             this.colorBtn = new System.Windows.Forms.ToolStripButton();
             this.deleteBtn = new System.Windows.Forms.ToolStripButton();
+            this.toolSep5 = new System.Windows.Forms.ToolStripSeparator();
+            this.optionsBtn = new System.Windows.Forms.ToolStripDropDownButton();
+            this.centerOnLaunchItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.groundSkyItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.measureStatus = new System.Windows.Forms.ToolStripStatusLabel();
@@ -69,6 +74,7 @@
             // toolStrip1
             //
             this.toolStrip1.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
+            this.toolStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.selectBtn,
             this.lineBtn,
@@ -76,6 +82,7 @@
             this.circleBtn,
             this.pushPullBtn,
             this.moveBtn,
+            this.panBtn,
             this.toolSep1,
             this.undoBtn,
             this.redoBtn,
@@ -96,141 +103,221 @@
             this.shapesLabel,
             this.shapesCombo,
             this.colorBtn,
-            this.deleteBtn});
+            this.deleteBtn,
+            this.toolSep5,
+            this.optionsBtn});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(1100, 25);
+            this.toolStrip1.Padding = new System.Windows.Forms.Padding(4, 2, 4, 2);
+            this.toolStrip1.Size = new System.Drawing.Size(1100, 35);
             this.toolStrip1.TabIndex = 0;
             //
             // selectBtn
+            //
             this.selectBtn.Name = "selectBtn";
-            this.selectBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.selectBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.selectBtn.Text = "Select";
             this.selectBtn.Click += new System.EventHandler(this.selectBtn_Click);
-            this.selectBtn.ToolTipText = "Select, move vertices, orbit (S / Esc)";
+            this.selectBtn.ToolTipText = "Select (S): pick shapes, drag vertices, double-click an edge to add one";
+            //
             // lineBtn
+            //
             this.lineBtn.Name = "lineBtn";
-            this.lineBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.lineBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.lineBtn.Text = "Line";
             this.lineBtn.Click += new System.EventHandler(this.lineBtn_Click);
-            this.lineBtn.ToolTipText = "Draw lines and polygons. Click the first point to close and fill (L)";
+            this.lineBtn.ToolTipText = "Line (L): click points; click the first point to close and fill";
+            //
             // rectBtn
+            //
             this.rectBtn.Name = "rectBtn";
-            this.rectBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.rectBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.rectBtn.Text = "Rectangle";
             this.rectBtn.Click += new System.EventHandler(this.rectBtn_Click);
-            this.rectBtn.ToolTipText = "Draw a filled rectangle (R)";
+            this.rectBtn.ToolTipText = "Rectangle (R)";
+            //
             // circleBtn
+            //
             this.circleBtn.Name = "circleBtn";
-            this.circleBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.circleBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.circleBtn.Text = "Circle";
             this.circleBtn.Click += new System.EventHandler(this.circleBtn_Click);
-            this.circleBtn.ToolTipText = "Draw a filled circle (C)";
+            this.circleBtn.ToolTipText = "Circle (C)";
+            //
             // pushPullBtn
+            //
             this.pushPullBtn.Name = "pushPullBtn";
-            this.pushPullBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.pushPullBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.pushPullBtn.Text = "Push/Pull";
             this.pushPullBtn.Click += new System.EventHandler(this.pushPullBtn_Click);
-            this.pushPullBtn.ToolTipText = "Extrude a filled face into a solid (P)";
+            this.pushPullBtn.ToolTipText = "Push/Pull (P): pull a filled face into a solid";
+            //
             // moveBtn
+            //
             this.moveBtn.Name = "moveBtn";
-            this.moveBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.moveBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.moveBtn.Text = "Move";
             this.moveBtn.Click += new System.EventHandler(this.moveBtn_Click);
-            this.moveBtn.ToolTipText = "Move a shape. Hold Ctrl when you click to copy it (M)";
+            this.moveBtn.ToolTipText = "Move (M): hold Ctrl when you click to copy";
+            //
+            // panBtn
+            //
+            this.panBtn.Name = "panBtn";
+            this.panBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.panBtn.Text = "Pan";
+            this.panBtn.Click += new System.EventHandler(this.panBtn_Click);
+            this.panBtn.ToolTipText = "Pan (H): drag to slide the view";
+            //
             // undoBtn
+            //
             this.undoBtn.Name = "undoBtn";
-            this.undoBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.undoBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.undoBtn.Text = "Undo";
             this.undoBtn.Click += new System.EventHandler(this.undoBtn_Click);
             this.undoBtn.ToolTipText = "Undo (Ctrl+Z)";
+            //
             // redoBtn
+            //
             this.redoBtn.Name = "redoBtn";
-            this.redoBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.redoBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.redoBtn.Text = "Redo";
             this.redoBtn.Click += new System.EventHandler(this.redoBtn_Click);
             this.redoBtn.ToolTipText = "Redo (Ctrl+Y)";
+            //
             // frontViewBtn
+            //
             this.frontViewBtn.Name = "frontViewBtn";
-            this.frontViewBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.frontViewBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.frontViewBtn.Text = "Front";
             this.frontViewBtn.Click += new System.EventHandler(this.frontViewBtn_Click);
             this.frontViewBtn.ToolTipText = "Front view (Ctrl+1)";
+            //
             // topViewBtn
+            //
             this.topViewBtn.Name = "topViewBtn";
-            this.topViewBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.topViewBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.topViewBtn.Text = "Top";
             this.topViewBtn.Click += new System.EventHandler(this.topViewBtn_Click);
             this.topViewBtn.ToolTipText = "Top view (Ctrl+2)";
+            //
             // leftViewBtn
+            //
             this.leftViewBtn.Name = "leftViewBtn";
-            this.leftViewBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.leftViewBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.leftViewBtn.Text = "Left";
             this.leftViewBtn.Click += new System.EventHandler(this.leftViewBtn_Click);
             this.leftViewBtn.ToolTipText = "Left view (Ctrl+3)";
+            //
             // rightViewBtn
+            //
             this.rightViewBtn.Name = "rightViewBtn";
-            this.rightViewBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.rightViewBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.rightViewBtn.Text = "Right";
             this.rightViewBtn.Click += new System.EventHandler(this.rightViewBtn_Click);
             this.rightViewBtn.ToolTipText = "Right view (Ctrl+4)";
+            //
             // isoViewBtn
+            //
             this.isoViewBtn.Name = "isoViewBtn";
-            this.isoViewBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.isoViewBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.isoViewBtn.Text = "Iso";
             this.isoViewBtn.Click += new System.EventHandler(this.isoViewBtn_Click);
-            this.isoViewBtn.ToolTipText = "Isometric view (Ctrl+5)";
+            this.isoViewBtn.ToolTipText = "Start / iso view (Ctrl+5, Home)";
+            //
             // planeLabel
+            //
             this.planeLabel.Name = "planeLabel";
             this.planeLabel.Text = "Draw on:";
+            //
             // planeCombo
+            //
             this.planeCombo.Name = "planeCombo";
             this.planeCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.planeCombo.Size = new System.Drawing.Size(120, 25);
+            this.planeCombo.Size = new System.Drawing.Size(110, 31);
             this.planeCombo.SelectedIndexChanged += new System.EventHandler(this.planeCombo_SelectedIndexChanged);
             this.planeCombo.ToolTipText = "Plane that new shapes are drawn on when the cursor is not over a face";
+            //
             // offsetLabel
+            //
             this.offsetLabel.Name = "offsetLabel";
             this.offsetLabel.Text = "at";
+            //
             // offsetBox
+            //
             this.offsetBox.Name = "offsetBox";
-            this.offsetBox.Size = new System.Drawing.Size(50, 25);
+            this.offsetBox.Size = new System.Drawing.Size(45, 31);
             this.offsetBox.TextChanged += new System.EventHandler(this.offsetBox_TextChanged);
             this.offsetBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.offsetBox_KeyDown);
             this.offsetBox.ToolTipText = "Position of the drawing plane along its normal";
+            //
             // gridBtn
+            //
             this.gridBtn.Name = "gridBtn";
-            this.gridBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.gridBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.gridBtn.Text = "Grid";
             this.gridBtn.Click += new System.EventHandler(this.gridBtn_Click);
             this.gridBtn.ToolTipText = "Show the grid and snap to it (G)";
+            //
             // axesBtn
+            //
             this.axesBtn.Name = "axesBtn";
-            this.axesBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.axesBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.axesBtn.Text = "Axes";
             this.axesBtn.Click += new System.EventHandler(this.axesBtn_Click);
             this.axesBtn.ToolTipText = "Show the X/Y/Z axes (A)";
+            //
             // shapesLabel
+            //
             this.shapesLabel.Name = "shapesLabel";
             this.shapesLabel.Text = "Shapes:";
+            //
             // shapesCombo
+            //
             this.shapesCombo.Name = "shapesCombo";
             this.shapesCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.shapesCombo.Size = new System.Drawing.Size(160, 25);
+            this.shapesCombo.Size = new System.Drawing.Size(150, 31);
             this.shapesCombo.SelectedIndexChanged += new System.EventHandler(this.shapesCombo_SelectedIndexChanged);
             this.shapesCombo.ToolTipText = "All shapes in the scene. Pick one to select it";
+            //
             // colorBtn
+            //
             this.colorBtn.Name = "colorBtn";
-            this.colorBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.colorBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.colorBtn.Text = "Color...";
             this.colorBtn.Click += new System.EventHandler(this.colorBtn_Click);
             this.colorBtn.ToolTipText = "Change the colour of the selected shape";
+            //
             // deleteBtn
+            //
             this.deleteBtn.Name = "deleteBtn";
-            this.deleteBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.deleteBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.deleteBtn.Text = "Delete";
             this.deleteBtn.Click += new System.EventHandler(this.deleteBtn_Click);
             this.deleteBtn.ToolTipText = "Delete the selected shape (Del)";
+            //
+            // optionsBtn
+            //
+            this.optionsBtn.Name = "optionsBtn";
+            this.optionsBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.ImageAndText;
+            this.optionsBtn.Text = "Options";
+            this.optionsBtn.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.centerOnLaunchItem,
+            this.groundSkyItem});
+            this.optionsBtn.ToolTipText = "Options";
+            //
+            // centerOnLaunchItem
+            //
+            this.centerOnLaunchItem.CheckOnClick = true;
+            this.centerOnLaunchItem.Name = "centerOnLaunchItem";
+            this.centerOnLaunchItem.Text = "Centre the view on launch (vertical axis upright in the middle)";
+            this.centerOnLaunchItem.Click += new System.EventHandler(this.centerOnLaunchItem_Click);
+            //
+            // groundSkyItem
+            //
+            this.groundSkyItem.CheckOnClick = true;
+            this.groundSkyItem.Name = "groundSkyItem";
+            this.groundSkyItem.Text = "Show ground, sky and horizon";
+            this.groundSkyItem.Click += new System.EventHandler(this.groundSkyItem_Click);
             //
             // statusStrip1
             //
@@ -267,9 +354,9 @@
             //
             this.viewport.BackColor = System.Drawing.Color.FromArgb(245, 245, 248);
             this.viewport.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.viewport.Location = new System.Drawing.Point(0, 25);
+            this.viewport.Location = new System.Drawing.Point(0, 35);
             this.viewport.Name = "viewport";
-            this.viewport.Size = new System.Drawing.Size(1100, 653);
+            this.viewport.Size = new System.Drawing.Size(1100, 643);
             this.viewport.TabIndex = 1;
             //
             // Form1
@@ -299,6 +386,7 @@
         private System.Windows.Forms.ToolStripButton circleBtn;
         private System.Windows.Forms.ToolStripButton pushPullBtn;
         private System.Windows.Forms.ToolStripButton moveBtn;
+        private System.Windows.Forms.ToolStripButton panBtn;
         private System.Windows.Forms.ToolStripSeparator toolSep1;
         private System.Windows.Forms.ToolStripButton undoBtn;
         private System.Windows.Forms.ToolStripButton redoBtn;
@@ -320,6 +408,10 @@
         private System.Windows.Forms.ToolStripComboBox shapesCombo;
         private System.Windows.Forms.ToolStripButton colorBtn;
         private System.Windows.Forms.ToolStripButton deleteBtn;
+        private System.Windows.Forms.ToolStripSeparator toolSep5;
+        private System.Windows.Forms.ToolStripDropDownButton optionsBtn;
+        private System.Windows.Forms.ToolStripMenuItem centerOnLaunchItem;
+        private System.Windows.Forms.ToolStripMenuItem groundSkyItem;
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel toolStatus;
         private System.Windows.Forms.ToolStripStatusLabel measureStatus;

@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 namespace ThreeDApp2
 {
-    public enum Tool { Select, Line, Rectangle, Circle, PushPull, Move }
+    public enum Tool { Select, Line, Rectangle, Circle, PushPull, Move, Pan }
 
     public enum WorkPlaneKind { Front, Ground, Side }
 
@@ -90,17 +90,26 @@ namespace ThreeDApp2
             circleBtn.Checked = tool == Tool.Circle;
             pushPullBtn.Checked = tool == Tool.PushPull;
             moveBtn.Checked = tool == Tool.Move;
-            switch (tool)
-            {
-                case Tool.Select: viewport.Cursor = Cursors.Default; break;
-                case Tool.Move: viewport.Cursor = Cursors.SizeAll; break;
-                case Tool.PushPull: viewport.Cursor = Cursors.Hand; break;
-                default: viewport.Cursor = Cursors.Cross; break;
-            }
+            panBtn.Checked = tool == Tool.Pan;
+            SetToolCursor();
             UpdateHover();
             UpdateStatus();
             viewport.Invalidate();
         }
+
+        private void SetToolCursor()
+        {
+            switch (mTool)
+            {
+                case Tool.Select: viewport.Cursor = Cursors.Default; break;
+                case Tool.Move: viewport.Cursor = Cursors.SizeAll; break;
+                case Tool.PushPull: viewport.Cursor = Cursors.SizeNS; break;
+                case Tool.Pan: viewport.Cursor = mPanDragging ? mGrabHandCursor : mOpenHandCursor; break;
+                default: viewport.Cursor = Cursors.Cross; break;
+            }
+        }
+
+        bool mPanDragging;
 
         private void CancelOperation()
         {
@@ -199,6 +208,10 @@ namespace ThreeDApp2
                     }
                     break;
 
+                case Tool.Pan:
+                    mSnap = new SnapResult();
+                    break;
+
                 case Tool.PushPull:
                     if (mPushFace < 0) mHoverIndex = mScene.Pick(mCursor, frame, 6, true);
                     mSnap = new SnapResult();
@@ -238,6 +251,11 @@ namespace ThreeDApp2
                 case Tool.Circle: ShapeToolClick(); break;
                 case Tool.PushPull: PushPullClick(); break;
                 case Tool.Move: MoveClick(); break;
+                case Tool.Pan:
+                    mPanDragging = true;
+                    StopSpin();
+                    SetToolCursor();   // Closed hand while dragging
+                    break;
             }
             UpdateHover();
             UpdateStatus();
@@ -246,6 +264,11 @@ namespace ThreeDApp2
 
         private void ToolMouseMove(MouseEventArgs e, int dx, int dy)
         {
+            if (mTool == Tool.Pan && mPanDragging && e.Button == MouseButtons.Left)
+            {
+                Pan(dx, dy);
+                return;
+            }
             if (mTool == Tool.Select && mSelectOrbit && e.Button == MouseButtons.Left)
             {
                 Orbit(dx, dy);
@@ -267,6 +290,12 @@ namespace ThreeDApp2
         private void ToolMouseUp(MouseEventArgs e)
         {
             mSelectOrbit = false;
+            if (mPanDragging)
+            {
+                mPanDragging = false;
+                SetToolCursor();
+                return;
+            }
             if (mTool == Tool.Select && mDragShape >= 0)
             {
                 bool changed = mDragChanged;
@@ -726,6 +755,9 @@ namespace ThreeDApp2
                 case Tool.Move:
                     hint = mMoveIndices == null ? "Move: click a shape to pick it up (hold Ctrl to copy)." : "Move: click to put it down, or type a distance and press Enter." + (mMoveCopy ? " (copying)" : "");
                     if (mMoveIndices != null) measure = "Distance " + mMoveDelta.Length().ToString("0.##");
+                    break;
+                case Tool.Pan:
+                    hint = "Pan: drag to slide the view. Esc or S returns to Select.";
                     break;
                 default:
                     hint = mSelected >= 0
