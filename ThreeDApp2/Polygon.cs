@@ -94,6 +94,29 @@ namespace ThreeDApp2
         //    return true;
         //}
 
+        /// <summary>Read-only view of the vertices (including the closing vertex, if any).</summary>
+        public IList<Point3D> Points
+        {
+            get { return m_point.AsReadOnly(); }
+        }
+
+        public void InsertAt(int index, Point3D P)
+        {
+            m_point.Insert(index, P);
+        }
+
+        public void RemoveAt(int index)
+        {
+            m_point.RemoveAt(index);
+        }
+
+        /// <summary>Removes the closing vertex so the polygon becomes an open polyline again.</summary>
+        public void Open()
+        {
+            if (GetSize() > 1 && Closed())
+                m_point.RemoveAt(GetSize() - 1);
+        }
+
         public void RemoveAll()
         {
             m_point.Clear();
