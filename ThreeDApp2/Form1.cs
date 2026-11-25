@@ -155,7 +155,7 @@ namespace ThreeDApp2
             var icons = new Dictionary<ToolStripItem, string>
             {
                 { selectBtn, "select" }, { lineBtn, "line" }, { rectBtn, "rectangle" }, { circleBtn, "circle" },
-                { pushPullBtn, "pushpull" }, { moveBtn, "move" }, { panBtn, "pan" }, { orbitBtn, "orbit" },
+                { pushPullBtn, "pushpull" }, { moveBtn, "move" }, { panBtn, "pan" }, { orbitBtn, "orbit" }, { importBtn, "import" }, { exportBtn, "export" },
                 { undoBtn, "undo" }, { redoBtn, "redo" },
                 { frontViewBtn, "view-front" }, { topViewBtn, "view-top" }, { leftViewBtn, "view-left" },
                 { rightViewBtn, "view-right" }, { isoViewBtn, "view-iso" },
@@ -384,6 +384,69 @@ namespace ThreeDApp2
             }
         }
 
+        /// <summary>Adds a 3D model file to the scene as one group (so it selects and moves as a whole).</summary>
+        private void ImportModel()
+        {
+            using (OpenFileDialog dlg = new OpenFileDialog())
+            {
+                dlg.Title = "Import 3D model";
+                dlg.Filter = ModelExchange.ImportFilter;
+                if (dlg.ShowDialog(this) != DialogResult.OK) return;
+                ImportResult result;
+                Cursor old = Cursor;
+                try
+                {
+                    Cursor = Cursors.WaitCursor;
+                    result = ModelExchange.Import(dlg.FileName, mScene.NextGroupId());
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, "Could not import the model:\n" + ex.Message, "Import", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                finally { Cursor = old; }
+
+                if (result.Shapes.Count > 0)
+                {
+                    CancelOperation();
+                    PushUndo();
+                    int first = mScene.Layers.Count;
+                    mScene.Layers.AddRange(result.Shapes);
+                    mSelected = first;
+                    mScene.ZoomExtents(mFov, Aspect(), true);   // Imported models can be any size
+                    Committed();
+                    SyncSelectionUi();
+                }
+                string summary = string.Format("Imported {0}: {1} faces, {2} lines", Path.GetFileName(dlg.FileName), result.Faces, result.Lines);
+                saveStatus.Text = summary;
+                if (result.Warnings.Count > 0)
+                    MessageBox.Show(this, summary + "\n\n" + string.Join("\n", result.Warnings), "Import", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                else if (result.Faces > 20000)
+                    MessageBox.Show(this, summary + "\n\nThis is a large model, so the view may be slow.", "Import", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        /// <summary>Writes every visible shape to a 3D file; the format comes from the extension chosen.</summary>
+        private void ExportModel()
+        {
+            using (SaveFileDialog dlg = new SaveFileDialog())
+            {
+                dlg.Title = "Export 3D model";
+                dlg.Filter = ModelExchange.ExportFilter;
+                dlg.FileName = (string.IsNullOrEmpty(mFilePath) ? "model" : Path.GetFileNameWithoutExtension(mFilePath)) + ".obj";
+                if (dlg.ShowDialog(this) != DialogResult.OK) return;
+                try
+                {
+                    ModelExchange.Export(dlg.FileName, mScene.Layers, EffectiveColor);
+                    saveStatus.Text = "Exported " + Path.GetFileName(dlg.FileName);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, "Could not export the model:\n" + ex.Message, "Export", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+        }
+
         #endregion
 
         #region Toolbar
@@ -404,6 +467,8 @@ namespace ThreeDApp2
         private void deleteBtn_Click(object sender, EventArgs e) { DeleteSelected(); }
         private void panBtn_Click(object sender, EventArgs e) { SetTool(Tool.Pan); }
         private void orbitBtn_Click(object sender, EventArgs e) { SetTool(Tool.Orbit); }
+        private void importBtn_Click(object sender, EventArgs e) { ImportModel(); }
+        private void exportBtn_Click(object sender, EventArgs e) { ExportModel(); }
 
         private void gizmoItem_Click(object sender, EventArgs e)
         {
@@ -549,6 +614,8 @@ namespace ThreeDApp2
                     case Keys.Y: Redo(); break;
                     case Keys.S: SaveAs(); break;
                     case Keys.O: OpenFile(); break;
+                    case Keys.I: ImportModel(); break;
+                    case Keys.E: ExportModel(); break;
                     case Keys.N: NewScene(); break;
                     case Keys.D1: FrontView(); break;
                     case Keys.D2: TopView(); break;
@@ -914,7 +981,7 @@ namespace ThreeDApp2
                 "While drawing: type a length + Enter   Enter/double-click: finish line   Backspace: remove point",
                 "Middle/right-drag: orbit   Shift+drag: pan   Wheel: zoom to cursor   Corner gizmo: drag to orbit, click an axis to look along it",
                 "X/Y: tilt/turn (Shift reverses)   Z: zoom extents   Ctrl+1..5: views   Home: start view   Space: spin",
-                "W wireframe  T translucent  G grid  A axes  N add layer  Del delete  Ctrl+Z/Y  Ctrl+S/O/N  F1 hide",
+                "W wireframe  T translucent  G grid  A axes  N add layer  Del delete  Ctrl+Z/Y  Ctrl+S/O/N  Ctrl+I/E import/export  F1 hide",
             };
 
             using (Font font = new Font("Consolas", 9f))

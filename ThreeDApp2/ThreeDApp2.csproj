@@ -59,6 +59,8 @@
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
     <Compile Include="IconShapes.cs" />
+    <Compile Include="MiniJson.cs" />
+    <Compile Include="ModelExchange.cs" />
     <Compile Include="OrbitGizmo.cs" />
     <Compile Include="Form1.Gizmo.cs">
       <DependentUpon>Form1.cs</DependentUpon>

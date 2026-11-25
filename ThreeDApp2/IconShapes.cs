@@ -30,7 +30,7 @@ namespace ThreeDApp2
 
         public static readonly string[] Names =
         {
-            "select", "line", "rectangle", "circle", "pushpull", "move", "pan", "pan-grab", "orbit",
+            "select", "line", "rectangle", "circle", "pushpull", "move", "pan", "pan-grab", "orbit", "import", "export",
             "undo", "redo", "view-front", "view-top", "view-left", "view-right", "view-iso",
             "grid", "axes", "color", "delete", "options",
         };
@@ -90,6 +90,25 @@ namespace ThreeDApp2
                     p.Add(Ellipse(Color.Empty, Color.FromArgb(120, 45, 45, 50), 0.9f, 6.5f, 10.2f, 17.5f, 13.8f)); // its equator
                     ArrowArc(p, Red, 12, 12, 10, 200, 340);                                                      // round the bottom
                     ArrowArc(p, Red, 12, 12, 10, 20, 160);                                                       // round the top
+                    break;
+
+                case "import":
+                case "export":
+                    {
+                        Color tray = Color.FromArgb(110, 115, 125);
+                        p.Add(Poly(Color.FromArgb(225, 230, 238), tray, 1.3f, 3, 14, 6.5f, 14, 8, 17, 16, 17, 17.5f, 14, 21, 14, 21, 21, 3, 21));
+                        Color arrow = name == "import" ? Green : Blue;
+                        if (name == "import")
+                        {
+                            p.Add(Line(arrow, 2.6f, 12, 2, 12, 10));
+                            p.Add(Poly(arrow, Color.Empty, 0, 7.5f, 9, 16.5f, 9, 12, 14.5f));
+                        }
+                        else
+                        {
+                            p.Add(Line(arrow, 2.6f, 12, 14, 12, 6.5f));
+                            p.Add(Poly(arrow, Color.Empty, 0, 7.5f, 7.5f, 16.5f, 7.5f, 12, 1.5f));
+                        }
+                    }
                     break;
 
                 case "undo":

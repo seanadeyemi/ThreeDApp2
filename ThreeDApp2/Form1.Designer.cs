@@ -39,6 +39,9 @@
             this.panBtn = new System.Windows.Forms.ToolStripButton();
             this.orbitBtn = new System.Windows.Forms.ToolStripButton();
             this.toolSep1 = new System.Windows.Forms.ToolStripSeparator();
+            this.importBtn = new System.Windows.Forms.ToolStripButton();
+            this.exportBtn = new System.Windows.Forms.ToolStripButton();
+            this.toolSepFile = new System.Windows.Forms.ToolStripSeparator();
             this.undoBtn = new System.Windows.Forms.ToolStripButton();
             this.redoBtn = new System.Windows.Forms.ToolStripButton();
             this.toolSep2 = new System.Windows.Forms.ToolStripSeparator();
@@ -87,6 +90,9 @@
             this.panBtn,
             this.orbitBtn,
             this.toolSep1,
+            this.importBtn,
+            this.exportBtn,
+            this.toolSepFile,
             this.undoBtn,
             this.redoBtn,
             this.toolSep2,
@@ -170,6 +176,22 @@
             this.panBtn.Text = "Pan";
             this.panBtn.Click += new System.EventHandler(this.panBtn_Click);
             this.panBtn.ToolTipText = "Pan (H): drag to slide the view";
+            //
+            // importBtn
+            //
+            this.importBtn.Name = "importBtn";
+            this.importBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.importBtn.Text = "Import";
+            this.importBtn.Click += new System.EventHandler(this.importBtn_Click);
+            this.importBtn.ToolTipText = "Import a 3D model: OBJ, STL, PLY, glTF/GLB (Ctrl+I)";
+            //
+            // exportBtn
+            //
+            this.exportBtn.Name = "exportBtn";
+            this.exportBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.exportBtn.Text = "Export";
+            this.exportBtn.Click += new System.EventHandler(this.exportBtn_Click);
+            this.exportBtn.ToolTipText = "Export the model as OBJ, STL, PLY, glTF or GLB (Ctrl+E)";
             //
             // orbitBtn
             //
@@ -407,6 +429,9 @@
         private System.Windows.Forms.ToolStripButton moveBtn;
         private System.Windows.Forms.ToolStripButton panBtn;
         private System.Windows.Forms.ToolStripButton orbitBtn;
+        private System.Windows.Forms.ToolStripButton importBtn;
+        private System.Windows.Forms.ToolStripButton exportBtn;
+        private System.Windows.Forms.ToolStripSeparator toolSepFile;
         private System.Windows.Forms.ToolStripSeparator toolSep1;
         private System.Windows.Forms.ToolStripButton undoBtn;
         private System.Windows.Forms.ToolStripButton redoBtn;
