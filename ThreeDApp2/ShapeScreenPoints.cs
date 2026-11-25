@@ -1,21 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ThreeDApp2
 {
     public class ShapeScreenPoints : IComparable<ShapeScreenPoints>
     {
-        public List<Point> PtList = new List<Point>();
-        public float Z;
+        public List<PointF> PtList = new List<PointF>();
+        public float Z;          // Average distance from the camera
+        public int LayerIndex;   // Which layer these points belong to
+        public float Shade = 1;  // 0..1 lighting factor
 
         public int CompareTo(ShapeScreenPoints other)
         {
-
-            return (int)(this.Z - other.Z);
+            // Compare the floats directly: casting the difference to int treated any two
+            // layers less than 1 unit apart as equal depth.
+            return Z.CompareTo(other.Z);
         }
     }
 }

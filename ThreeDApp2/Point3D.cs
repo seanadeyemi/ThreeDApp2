@@ -21,6 +21,16 @@ namespace ThreeDApp2
             return new Point3D(A.X + P.X, A.Y + P.Y, A.Z + P.Z);
         }
 
+        public static Point3D operator - (Point3D A, Point3D P)
+        {
+            return new Point3D(A.X - P.X, A.Y - P.Y, A.Z - P.Z);
+        }
+
+        public Point3D Clone()
+        {
+            return new Point3D(X, Y, Z);
+        }
+
         public float D2Real(double x)
         {
             return (float)x;
@@ -32,7 +42,7 @@ namespace ThreeDApp2
             Y *= factor;
             Z *= factor;
         }
-        float Length()
+        public float Length()
         {
             return D2Real(Math.Sqrt(X * X + Y * Y + Z * Z));
         }
@@ -48,7 +58,7 @@ namespace ThreeDApp2
             //[ 1    0        0   ]
             //[ 0   cos(x)  sin(x)]
             //[ 0   -sin(x) cos(x)]
-            double cDegrees = (Math.PI * degrees) / 180.0f; //Convert degrees to radian for .Net Cos/Sin functions
+            double cDegrees = (Math.PI * degrees) / 180.0; //Convert degrees to radian for .Net Cos/Sin functions
             double cosDegrees = Math.Cos(cDegrees);
             double sinDegrees = Math.Sin(cDegrees);
             double y = (point3D.Y * cosDegrees) + (point3D.Z * sinDegrees);
@@ -83,12 +93,12 @@ namespace ThreeDApp2
         }
         public static Point3D Translate(Point3D points3D, Point3D oldOrigin, Point3D newOrigin)
         {
-            //Moves a 3D point based on a moved reference point
-            Point3D difference = new Point3D(newOrigin.X - oldOrigin.X, newOrigin.Y - oldOrigin.Y, newOrigin.Z - oldOrigin.Z);
-            points3D.X += difference.X;
-            points3D.Y += difference.Y;
-            points3D.Z += difference.Z;
-            return points3D;
+            //Moves a 3D point based on a moved reference point.
+            //Returns a new point so the caller's point (which may be shared, e.g. a
+            //polygon's closing vertex) is never modified behind its back.
+            return new Point3D(points3D.X + (newOrigin.X - oldOrigin.X),
+                               points3D.Y + (newOrigin.Y - oldOrigin.Y),
+                               points3D.Z + (newOrigin.Z - oldOrigin.Z));
         }
 
         //These are to make the above functions workable with arrays of 3D points

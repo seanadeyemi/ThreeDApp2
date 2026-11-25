@@ -102,16 +102,20 @@ namespace ThreeDApp2
 
         public bool Close()
         {
+            if (GetSize() == 0) return false;
             if (!Closed())
             {
                 // if (!SetSize(GetSize() + 1)) return false;
                 //  m_point[GetSize() - 1] = m_point[0];
-                m_point.Add(m_point[0]);
+                // Add a copy of the first vertex rather than the same object, otherwise
+                // anything that moves every vertex (e.g. MyPolygon.PtChange) moves it twice.
+                m_point.Add(m_point[0].Clone());
             }
             return true;
         }
         public bool Closed()
         {
+            if (GetSize() < 2) return false;
             if (ABS(m_point[GetSize() - 1].X - m_point[0].X) > EPSILON) return false;
             if (ABS(m_point[GetSize() - 1].Y - m_point[0].Y) > EPSILON) return false;
             if (ABS(m_point[GetSize() - 1].Z - m_point[0].Z) > EPSILON) return false;

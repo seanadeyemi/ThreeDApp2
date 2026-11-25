@@ -30,8 +30,9 @@
         {
             this.components = new System.ComponentModel.Container();
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 450);
-            this.Text = "Form1";
+            this.ClientSize = new System.Drawing.Size(960, 600);
+            this.MinimumSize = new System.Drawing.Size(400, 300);
+            this.Text = "ThreeDApp2 - 3D Layer Viewer";
         }
 
         #endregion
