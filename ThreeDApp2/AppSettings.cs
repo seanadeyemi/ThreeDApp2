@@ -19,6 +19,9 @@ namespace ThreeDApp2
         /// <summary>"standard" (GDI+, works everywhere) or "gpu" (OpenGL).</summary>
         public string Renderer = "standard";
 
+        /// <summary>"perspective" or "orthographic".</summary>
+        public string Projection = "perspective";
+
         public static AppSettings Load(string path)
         {
             AppSettings s = new AppSettings();
@@ -36,6 +39,7 @@ namespace ThreeDApp2
                     if (key == "CenterOnLaunch") s.CenterOnLaunch = value;
                     else if (key == "GroundAndSky") s.GroundAndSky = value;
                     else if (key == "ShowGizmo") s.ShowGizmo = value;
+                    else if (key == "Projection") s.Projection = text.Equals("orthographic", StringComparison.OrdinalIgnoreCase) ? "orthographic" : "perspective";
                     else if (key == "Renderer") s.Renderer = text.Equals("gpu", StringComparison.OrdinalIgnoreCase) ? "gpu" : "standard";
                 }
             }
@@ -56,6 +60,7 @@ namespace ThreeDApp2
                 "GroundAndSky=" + (GroundAndSky ? "true" : "false"),
                 "ShowGizmo=" + (ShowGizmo ? "true" : "false"),
                 "Renderer=" + Renderer,
+                "Projection=" + Projection,
             });
         }
     }

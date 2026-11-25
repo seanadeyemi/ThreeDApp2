@@ -47,6 +47,38 @@ namespace ThreeDApp2
             renderBtn.ToolTipText = gpu ? "Renderer: GPU (OpenGL) on " + mGpuDescription : "Renderer: Standard (GDI+)";
         }
 
+        /// <summary>Switches between perspective and orthographic (parallel) projection.</summary>
+        private void SetOrthographic(bool on, bool fromUser)
+        {
+            mScene.Orthographic = on;
+            mSettings.Projection = on ? "orthographic" : "perspective";
+            if (fromUser)
+            {
+                SaveSettings();
+                saveStatus.Text = on ? "Orthographic view" : "Perspective view";
+            }
+            UpdateProjectionUi();
+            NoteViewChange();
+            UpdateHover();
+            viewport.Invalidate();
+        }
+
+        private void UpdateProjectionUi()
+        {
+            bool ortho = mScene.Orthographic;
+            projectionBtn.Text = ortho ? "Ortho" : "Perspective";
+            perspectiveItem.Checked = !ortho;
+            orthographicItem.Checked = ortho;
+            if (projectionBtn.Image != null)
+            {
+                projectionBtn.Image.Dispose();
+                projectionBtn.Image = ToolIcons.Render(ortho ? "ortho" : "perspective", toolStrip1.ImageScalingSize.Width);
+            }
+        }
+
+        private void perspectiveItem_Click(object sender, EventArgs e) { SetOrthographic(false, true); }
+        private void orthographicItem_Click(object sender, EventArgs e) { SetOrthographic(true, true); }
+
         private void standardRenderItem_Click(object sender, EventArgs e) { UseGpuRenderer(false, true); }
         private void gpuRenderItem_Click(object sender, EventArgs e) { UseGpuRenderer(true, true); }
 

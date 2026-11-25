@@ -229,8 +229,18 @@ namespace ThreeDApp2
                     minDz = Math.Min(minDz, dz);
                     maxDz = Math.Max(maxDz, dz);
                 }
-            f.Near = Math.Max(0.02, Math.Min(scene.NearPlane, minDz == double.MaxValue ? scene.NearPlane : minDz * 0.5));
-            f.Far = Math.Max(f.Near * 10, maxDz * 1.05 + 1);
+            if (scene.Orthographic)
+            {
+                // Parallel projection shows things behind the camera point too, so the range can go negative.
+                double pad = Math.Max(1, (maxDz - minDz) * 0.02);
+                f.Near = minDz == double.MaxValue ? -1 : minDz - pad;
+                f.Far = minDz == double.MaxValue ? 1 : maxDz + pad;
+            }
+            else
+            {
+                f.Near = Math.Max(0.02, Math.Min(scene.NearPlane, minDz == double.MaxValue ? scene.NearPlane : minDz * 0.5));
+                f.Far = Math.Max(f.Near * 10, maxDz * 1.05 + 1);
+            }
             BuildMatrices(scene, f);
             return f;
         }
@@ -304,9 +314,19 @@ namespace ThreeDApp2
 
             double focal = scene.FocalLength;
             double n = f.Near, far = f.Far;
-            double right = f.Width / 2.0 * n / focal, top = f.Height / 2.0 * n / focal;
             double[] pr = f.Projection;
             Array.Clear(pr, 0, 16);
+            if (scene.Orthographic)
+            {
+                double s = scene.OrthoScale;
+                pr[0] = s / (f.Width / 2.0);
+                pr[5] = s / (f.Height / 2.0);
+                pr[10] = -2 / (far - n);          // Eye z (OpenGL) is -depth, so nearer = smaller depth
+                pr[14] = -(far + n) / (far - n);
+                pr[15] = 1;
+                return;
+            }
+            double right = f.Width / 2.0 * n / focal, top = f.Height / 2.0 * n / focal;
             pr[0] = n / right;
             pr[5] = n / top;
             pr[10] = -(far + n) / (far - n);
