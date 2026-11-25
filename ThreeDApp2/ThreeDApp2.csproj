@@ -61,6 +61,10 @@
     <Compile Include="IconShapes.cs" />
     <Compile Include="GpuScene.cs" />
     <Compile Include="GlRenderer.cs" />
+    <Compile Include="Form1.Selection.cs">
+      <DependentUpon>Form1.cs</DependentUpon>
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Form1.Transform.cs">
       <DependentUpon>Form1.cs</DependentUpon>
       <SubType>Form</SubType>
@@ -90,6 +94,7 @@
     <Compile Include="ToolIcons.cs" />
     <Compile Include="UndoStack.cs" />
     <Compile Include="TransformHandles.cs" />
+    <Compile Include="MarqueeSelect.cs" />
     <Compile Include="ViewportPanel.cs">
       <SubType>Component</SubType>
     </Compile>

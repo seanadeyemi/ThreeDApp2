@@ -30,7 +30,7 @@ namespace ThreeDApp2
 
         public static readonly string[] Names =
         {
-            "select", "line", "rectangle", "circle", "pushpull", "move", "rotate", "scale", "pan", "pan-grab", "orbit", "import", "export", "render",
+            "select", "marquee", "line", "rectangle", "circle", "pushpull", "move", "rotate", "scale", "pan", "pan-grab", "orbit", "import", "export", "render",
             "undo", "redo", "view-front", "view-top", "view-left", "view-right", "view-iso", "perspective", "ortho",
             "grid", "axes", "color", "delete", "options",
         };
@@ -42,6 +42,19 @@ namespace ThreeDApp2
             {
                 case "select":
                     p.Add(Poly(Ink, Color.White, 1.2f, 6, 2.5f, 6, 19.5f, 10, 15.5f, 13, 21.5f, 15.8f, 20.2f, 12.8f, 14.3f, 18.3f, 14.3f));
+                    break;
+
+                case "marquee":
+                    {
+                        // A dashed selection box with two shapes caught inside and the pointer at its corner.
+                        Color dash = Color.FromArgb(30, 110, 220);
+                        p.Add(Poly(Color.FromArgb(60, 30, 110, 220), Color.Empty, 0, 2, 2, 18, 2, 18, 16, 2, 16));
+                        for (float x = 2; x < 18; x += 4) { p.Add(Line(dash, 1.4f, x, 2, Math.Min(18, x + 2.2f), 2)); p.Add(Line(dash, 1.4f, x, 16, Math.Min(18, x + 2.2f), 16)); }
+                        for (float y = 2; y < 16; y += 4) { p.Add(Line(dash, 1.4f, 2, y, 2, Math.Min(16, y + 2.2f))); p.Add(Line(dash, 1.4f, 18, y, 18, Math.Min(16, y + 2.2f))); }
+                        p.Add(Poly(Color.FromArgb(255, 205, 130), Ink, 1f, 4.5f, 6, 9, 6, 9, 10.5f, 4.5f, 10.5f));
+                        p.Add(Ellipse(Color.FromArgb(200, 180, 245), Ink, 1f, 10.5f, 7.5f, 15.5f, 12.5f));
+                        p.Add(Poly(Ink, Color.White, 1f, 14, 12, 14, 23, 16.6f, 20.4f, 18.4f, 23.6f, 20.2f, 22.6f, 18.4f, 19.6f, 22, 19.6f));
+                    }
                     break;
 
                 case "line":

@@ -95,7 +95,7 @@ namespace ThreeDApp2
                 {
                     Wireframe = mWireframe,
                     Translucent = mTranslucent,
-                    Selected = mSelected >= 0 ? mScene.GroupMembers(mSelected) : new System.Collections.Generic.List<int>(),
+                    Selected = SelectionIndices(),
                     Hover = -1,   // Hover is drawn as an overlay, so it doesn't force a redraw
                     ColorOf = EffectiveColor,
                 };
