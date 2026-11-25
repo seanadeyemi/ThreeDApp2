@@ -20,6 +20,16 @@ namespace ThreeDApp2
         public Point3D Pivot = new Point3D(0, 0, 0);    // Point the layers rotate around
         public Matrix3D Orientation = Matrix3D.Identity();
 
+        /// <summary>
+        /// Parallel (orthographic) projection instead of perspective: no vanishing points, sizes don't
+        /// shrink with distance. The zoom matches perspective at the orbit target, so switching keeps
+        /// whatever is at the target the same size on screen.
+        /// </summary>
+        public bool Orthographic;
+
+        /// <summary>Pixels per model unit in orthographic mode (perspective's scale at the orbit target).</summary>
+        public float OrthoScale { get { return Scale * ScreenZ / Math.Max(0.01f, Distance); } }
+
         // Light comes from over the viewer's shoulder.
         public static readonly double[] LightDir = Normalize(new double[] { -0.4, 0.5, -1.0 });
 
@@ -244,6 +254,14 @@ namespace ThreeDApp2
         /// <summary>Screen Y (relative to the viewport centre) of the ground plane's horizon.</summary>
         public float HorizonY()
         {
+            if (Orthographic)
+            {
+                // Parallel projection has no vanishing line: looking down, the ground fills the view;
+                // looking up, the sky does; level, the ground plane is a line at its own height.
+                if (Pitch > 0.01) return -1e6f;
+                if (Pitch < -0.01) return 1e6f;
+                return OrthoScale * ToModel(Camera).Y;
+            }
             double y = -FocalLength * Math.Tan(Pitch * Math.PI / 180);
             return (float)Math.Max(-1e6, Math.Min(1e6, y));
         }
@@ -292,6 +310,17 @@ namespace ThreeDApp2
         /// </summary>
         public void GetModelRay(PointF screen, out Point3D origin, out Point3D direction)
         {
+            if (Orthographic)
+            {
+                // Parallel rays: every pixel looks straight ahead. Start well behind the camera so shapes
+                // between the camera and the target (which parallel projection still shows) are hit too.
+                float s = OrthoScale;
+                float back = Distance * 50 + 100;
+                Point3D start = new Point3D(Camera.X + screen.X / s, Camera.Y - screen.Y / s, Camera.Z - back);
+                origin = ToModel(start);
+                direction = Orientation.Transpose().Transform(new Point3D(0, 0, 1));
+                return;
+            }
             Point3D worldDir = new Point3D(screen.X / (Scale * ScreenZ), -screen.Y / (Scale * ScreenZ), 1);
             origin = ToModel(Camera);
             direction = Orientation.Transpose().Transform(worldDir);
@@ -305,6 +334,7 @@ namespace ThreeDApp2
         {
             pa = pb = PointF.Empty;
             Point3D wa = ToWorld(a), wb = ToWorld(b);
+            if (Orthographic) return TryProject(wa, out pa) && TryProject(wb, out pb);
             float za = wa.Z - Camera.Z, zb = wb.Z - Camera.Z;
             if (za < NearPlane && zb < NearPlane) return false;
             if (za < NearPlane)
@@ -400,6 +430,12 @@ namespace ThreeDApp2
         /// </summary>
         public bool TryProject(Point3D world, out PointF screen)
         {
+            if (Orthographic)
+            {
+                float s = OrthoScale;
+                screen = new PointF(s * (world.X - Camera.X), -s * (world.Y - Camera.Y));
+                return true;
+            }
             float dz = world.Z - Camera.Z;
             if (dz < NearPlane)
             {
@@ -434,7 +470,7 @@ namespace ThreeDApp2
             {
                 o[0, 0], o[0, 1], o[0, 2], o[1, 0], o[1, 1], o[1, 2], o[2, 0], o[2, 1], o[2, 2],
                 Camera.X, Camera.Y, Camera.Z, Pivot.X, Pivot.Y, Pivot.Z, Scale, ScreenZ, NearPlane,
-                GeometryVersion, Layers.Count,
+                GeometryVersion, Layers.Count, Orthographic ? 1 : 0, Distance,
             };
         }
 
@@ -490,6 +526,8 @@ namespace ThreeDApp2
             double ty = py - (a10 * px + a11 * py + a12 * pz) - Camera.Y;
             double tz = pz - (a20 * px + a21 * py + a22 * pz) - Camera.Z;
             double k = Scale * ScreenZ, near = NearPlane;
+            bool ortho = Orthographic;
+            double ko = OrthoScale;
             double lx = LightDir[0], ly = LightDir[1], lz = LightDir[2];
 
             int n = Layers.Count;
@@ -520,8 +558,13 @@ namespace ThreeDApp2
                     double z = a20 * mx + a21 * my + a22 * mz + tz;
                     ex[j] = x; ey[j] = y; ez[j] = z;
                     depth += z;
-                    if (z < near) { visible = false; sp[j] = new PointF(float.NaN, float.NaN); continue; }
-                    float sx = (float)(k * x / z), sy = (float)(-k * y / z);
+                    float sx, sy;
+                    if (ortho) { sx = (float)(ko * x); sy = (float)(-ko * y); }
+                    else
+                    {
+                        if (z < near) { visible = false; sp[j] = new PointF(float.NaN, float.NaN); continue; }
+                        sx = (float)(k * x / z); sy = (float)(-k * y / z);
+                    }
                     sp[j] = new PointF(sx, sy);
                     if (sx < minX) minX = sx; if (sx > maxX) maxX = sx;
                     if (sy < minY) minY = sy; if (sy > maxY) maxY = sy;

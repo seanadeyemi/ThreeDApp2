@@ -50,6 +50,9 @@
             this.leftViewBtn = new System.Windows.Forms.ToolStripButton();
             this.rightViewBtn = new System.Windows.Forms.ToolStripButton();
             this.isoViewBtn = new System.Windows.Forms.ToolStripButton();
+            this.projectionBtn = new System.Windows.Forms.ToolStripDropDownButton();
+            this.perspectiveItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.orthographicItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolSep3 = new System.Windows.Forms.ToolStripSeparator();
             this.planeLabel = new System.Windows.Forms.ToolStripLabel();
             this.planeCombo = new System.Windows.Forms.ToolStripComboBox();
@@ -104,6 +107,7 @@
             this.leftViewBtn,
             this.rightViewBtn,
             this.isoViewBtn,
+            this.projectionBtn,
             this.toolSep3,
             this.planeLabel,
             this.planeCombo,
@@ -260,6 +264,28 @@
             this.isoViewBtn.Text = "Iso";
             this.isoViewBtn.Click += new System.EventHandler(this.isoViewBtn_Click);
             this.isoViewBtn.ToolTipText = "Start / iso view (Ctrl+5, Home)";
+            //
+            // projectionBtn
+            //
+            this.projectionBtn.Name = "projectionBtn";
+            this.projectionBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.ImageAndText;
+            this.projectionBtn.Text = "Perspective";
+            this.projectionBtn.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.perspectiveItem,
+            this.orthographicItem});
+            this.projectionBtn.ToolTipText = "Projection (V or NumPad 5 switches)";
+            //
+            // perspectiveItem
+            //
+            this.perspectiveItem.Name = "perspectiveItem";
+            this.perspectiveItem.Text = "Perspective: far things look smaller";
+            this.perspectiveItem.Click += new System.EventHandler(this.perspectiveItem_Click);
+            //
+            // orthographicItem
+            //
+            this.orthographicItem.Name = "orthographicItem";
+            this.orthographicItem.Text = "Orthographic: parallel lines stay parallel, true sizes";
+            this.orthographicItem.Click += new System.EventHandler(this.orthographicItem_Click);
             //
             // planeLabel
             //
@@ -467,6 +493,9 @@
         private System.Windows.Forms.ToolStripButton leftViewBtn;
         private System.Windows.Forms.ToolStripButton rightViewBtn;
         private System.Windows.Forms.ToolStripButton isoViewBtn;
+        private System.Windows.Forms.ToolStripDropDownButton projectionBtn;
+        private System.Windows.Forms.ToolStripMenuItem perspectiveItem;
+        private System.Windows.Forms.ToolStripMenuItem orthographicItem;
         private System.Windows.Forms.ToolStripSeparator toolSep3;
         private System.Windows.Forms.ToolStripLabel planeLabel;
         private System.Windows.Forms.ToolStripComboBox planeCombo;

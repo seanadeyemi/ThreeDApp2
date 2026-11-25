@@ -31,7 +31,7 @@ namespace ThreeDApp2
         public static readonly string[] Names =
         {
             "select", "line", "rectangle", "circle", "pushpull", "move", "pan", "pan-grab", "orbit", "import", "export", "render",
-            "undo", "redo", "view-front", "view-top", "view-left", "view-right", "view-iso",
+            "undo", "redo", "view-front", "view-top", "view-left", "view-right", "view-iso", "perspective", "ortho",
             "grid", "axes", "color", "delete", "options",
         };
 
@@ -136,6 +136,29 @@ namespace ThreeDApp2
                 case "view-right": Cube(p, 2); break;
                 case "view-left": Cube(p, 2); Mirror(p); break;
                 case "view-iso": Cube(p, -1); break;
+
+                case "perspective":
+                    {
+                        // A box whose far face is smaller, its edges running to a vanishing point.
+                        Color far = Color.FromArgb(200, 215, 235), near = Color.FromArgb(120, 165, 230);
+                        p.Add(Line(Color.FromArgb(150, 160, 175), 0.9f, 3, 3, 12, 9.5f));
+                        p.Add(Line(Color.FromArgb(150, 160, 175), 0.9f, 21, 3, 12, 9.5f));
+                        p.Add(Poly(far, Ink, 1f, 9, 7.5f, 15, 7.5f, 15, 13.5f, 9, 13.5f));
+                        p.Add(Poly(Color.FromArgb(170, 195, 230), Ink, 1f, 2, 4, 9, 7.5f, 9, 13.5f, 2, 21));
+                        p.Add(Poly(Color.FromArgb(150, 180, 225), Ink, 1f, 22, 4, 15, 7.5f, 15, 13.5f, 22, 21));
+                        p.Add(Poly(near, Ink, 1f, 2, 21, 9, 13.5f, 15, 13.5f, 22, 21));
+                    }
+                    break;
+
+                case "ortho":
+                    {
+                        // The same box drawn with parallel edges: both faces the same size.
+                        p.Add(Poly(Color.FromArgb(200, 215, 235), Ink, 1f, 8, 3, 21, 3, 21, 16, 8, 16));
+                        p.Add(Poly(Color.FromArgb(170, 195, 230), Ink, 1f, 8, 3, 21, 3, 16, 8, 3, 8));
+                        p.Add(Poly(Color.FromArgb(150, 180, 225), Ink, 1f, 21, 3, 21, 16, 16, 21, 16, 8));
+                        p.Add(Poly(Color.FromArgb(120, 165, 230), Ink, 1f, 3, 8, 16, 8, 16, 21, 3, 21));
+                    }
+                    break;
 
                 case "grid":
                     p.Add(Poly(Color.FromArgb(235, 240, 245), Color.FromArgb(110, 110, 120), 1.2f, 3, 3, 21, 3, 21, 21, 3, 21));

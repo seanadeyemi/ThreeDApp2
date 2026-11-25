@@ -120,6 +120,7 @@ namespace ThreeDApp2
             }
             mUndo.Clear();
             UseGpuRenderer(mSettings.Renderer == "gpu", false);
+            SetOrthographic(mSettings.Projection == "orthographic", false);
             SetTool(Tool.Select);
             RefreshShapesCombo();
             UpdateToggleButtons();
@@ -131,6 +132,7 @@ namespace ThreeDApp2
         private void ResetScene()
         {
             mScene = new Scene();
+            mScene.Orthographic = mSettings != null && mSettings.Projection == "orthographic";
             AddHouseLayer(20);
             AddHouseLayer(30);
             AddHouseLayer(50);
@@ -161,7 +163,7 @@ namespace ThreeDApp2
                 { pushPullBtn, "pushpull" }, { moveBtn, "move" }, { panBtn, "pan" }, { orbitBtn, "orbit" }, { importBtn, "import" }, { exportBtn, "export" },
                 { undoBtn, "undo" }, { redoBtn, "redo" },
                 { frontViewBtn, "view-front" }, { topViewBtn, "view-top" }, { leftViewBtn, "view-left" },
-                { rightViewBtn, "view-right" }, { isoViewBtn, "view-iso" },
+                { rightViewBtn, "view-right" }, { isoViewBtn, "view-iso" }, { projectionBtn, mScene != null && mScene.Orthographic ? "ortho" : "perspective" },
                 { gridBtn, "grid" }, { axesBtn, "axes" }, { colorBtn, "color" }, { deleteBtn, "delete" }, { renderBtn, "render" },
                 { optionsBtn, "options" },
             };
@@ -369,6 +371,7 @@ namespace ThreeDApp2
             {
                 if (!File.Exists(mAutosavePath)) return false;
                 Scene loaded = SceneFile.Load(mAutosavePath);
+                loaded.Orthographic = mScene != null && mScene.Orthographic;
                 mScene = loaded;
                 saveStatus.Text = "Restored your last session";
                 return true;
@@ -413,6 +416,7 @@ namespace ThreeDApp2
                 {
                     Scene loaded = SceneFile.Load(dlg.FileName);
                     CancelOperation();
+                    loaded.Orthographic = mScene != null && mScene.Orthographic;
                     mScene = loaded;
                     mScene.DeriveOrbit();
                     ApplyFieldOfView();
@@ -746,6 +750,8 @@ namespace ThreeDApp2
                 case Keys.A: mShowAxes = !mShowAxes; UpdateToggleButtons(); break;
                 case Keys.H: SetTool(Tool.Pan); break;
                 case Keys.O: SetTool(Tool.Orbit); break;
+                case Keys.V:
+                case Keys.NumPad5: SetOrthographic(!mScene.Orthographic, true); break;
                 case Keys.F1: mShowHud = !mShowHud; break;
                 case Keys.N: AddLayerBehind(); break;
                 default:
@@ -884,7 +890,7 @@ namespace ThreeDApp2
             k.Append(mScene.GeometryVersion).Append(',').Append(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(mScene.Layers)).Append(',')
              .Append(mScene.Layers.Count).Append(',').Append(mSelected).Append(',').Append((int)mWorkPlane).Append(',')
              .Append(mWireframe).Append(mTranslucent).Append(mShowGrid).Append(mShowAxes).Append(mSettings.GroundAndSky)
-             .Append(mGpu != null).Append(mDraftQuality).Append(',').Append(viewport.ClientSize.Width).Append('x').Append(viewport.ClientSize.Height);
+             .Append(mGpu != null).Append(mScene.Orthographic).Append(mDraftQuality).Append(',').Append(viewport.ClientSize.Width).Append('x').Append(viewport.ClientSize.Height);
             return k.ToString();
         }
 
@@ -1119,16 +1125,17 @@ namespace ThreeDApp2
             {
                 string.Format("Shapes: {0} ({1} visible)   Turn {2:0}°  Tilt {3:0}°  Distance {4:0.#}  FOV {5:0}°   Tool: {6}",
                     mScene.Layers.Count, visibleLayers, mScene.Yaw, mScene.Pitch, mScene.Distance, mFov, mTool),
-                string.Format("Mode: {0}{1}{2}   Renderer: {3}",
+                string.Format("Mode: {0}{1}{2}   Projection: {4}   Renderer: {3}",
                     mWireframe ? "wireframe" : "filled",
                     mTranslucent && !mWireframe ? ", translucent" : "",
                     mSpinTimer.Enabled ? ", spinning" : "",
-                    mGpu != null ? "GPU, " + mGpuDescription : "Standard"),
+                    mGpu != null ? "GPU, " + mGpuDescription : "Standard",
+                    mScene.Orthographic ? "orthographic" : "perspective"),
                 "",
                 "Tools: S select  L line  R rectangle  C circle  P push/pull  M move  H pan  O orbit   Esc: cancel",
                 "While drawing: type a length + Enter   Enter/double-click: finish line   Backspace: remove point",
                 "Middle/right-drag: orbit   Shift+drag: pan   Wheel: zoom to cursor   Corner gizmo: drag to orbit, click an axis to look along it",
-                "X/Y: tilt/turn (Shift reverses)   Z: zoom extents   Ctrl+1..5: views   Home: start view   Space: spin",
+                "X/Y: tilt/turn (Shift reverses)   Z: zoom extents   Ctrl+1..5: views   Home: start view   Space: spin   V / NumPad 5: perspective/ortho",
                 "W wireframe  T translucent  G grid  A axes  N add layer  Del delete  Ctrl+Z/Y  Ctrl+S/O/N  Ctrl+I/E import/export  F1 hide",
             };
 
