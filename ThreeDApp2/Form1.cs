@@ -82,7 +82,7 @@ namespace ThreeDApp2
             viewport.MouseWheel += Viewport_MouseWheel;
             viewport.MouseLeave += (s, e) => { mCursorInside = false; viewport.Invalidate(); };
             this.KeyDown += Form1_KeyDown;
-            this.FormClosing += (s, e) => Autosave();
+            this.FormClosing += (s, e) => { Autosave(); if (mGpu != null) { mGpu.Dispose(); mGpu = null; } };
             viewport.Resize += (s, e) => { ApplyFieldOfView(); viewport.Invalidate(); };
 
             mSpinTimer = new Timer(components);
@@ -117,6 +117,7 @@ namespace ThreeDApp2
                 ApplyFieldOfView();
             }
             mUndo.Clear();
+            UseGpuRenderer(mSettings.Renderer == "gpu", false);
             SetTool(Tool.Select);
             RefreshShapesCombo();
             UpdateToggleButtons();
@@ -159,7 +160,7 @@ namespace ThreeDApp2
                 { undoBtn, "undo" }, { redoBtn, "redo" },
                 { frontViewBtn, "view-front" }, { topViewBtn, "view-top" }, { leftViewBtn, "view-left" },
                 { rightViewBtn, "view-right" }, { isoViewBtn, "view-iso" },
-                { gridBtn, "grid" }, { axesBtn, "axes" }, { colorBtn, "color" }, { deleteBtn, "delete" },
+                { gridBtn, "grid" }, { axesBtn, "axes" }, { colorBtn, "color" }, { deleteBtn, "delete" }, { renderBtn, "render" },
                 { optionsBtn, "options" },
             };
             foreach (var pair in icons)
@@ -422,7 +423,7 @@ namespace ThreeDApp2
                 if (result.Warnings.Count > 0)
                     MessageBox.Show(this, summary + "\n\n" + string.Join("\n", result.Warnings), "Import", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 else if (result.Faces > 20000)
-                    MessageBox.Show(this, summary + "\n\nThis is a large model, so the view may be slow.", "Import", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show(this, summary + "\n\nThis is a large model, so the view may be slow. The GPU renderer (toolbar) handles big models better.", "Import", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -806,10 +807,21 @@ namespace ThreeDApp2
             if (mShowGrid) DrawGrid(g);
             if (mShowAxes) DrawAxes(g);
 
-            List<ShapeScreenPoints> frame = mScene.BuildFrame();
+            int visibleShapes = 0;
+            bool drawn = false;
+            if (mGpu != null)
+            {
+                // The GPU picture covers the whole viewport, so draw it without the centring transform.
+                g.Restore(state);
+                drawn = PaintShapesGpu(g, out visibleShapes);
+                state = g.Save();
+                g.TranslateTransform(viewport.ClientSize.Width / 2f, viewport.ClientSize.Height / 2f);
+            }
+            List<ShapeScreenPoints> frame = drawn ? new List<ShapeScreenPoints>() : mScene.BuildFrame();
+            if (!drawn) visibleShapes = frame.Count;
             List<int> selectedGroup = mSelected >= 0 ? mScene.GroupMembers(mSelected) : new List<int>();
 
-            // Painter's algorithm: frame is ordered farthest first.
+            // Standard renderer, painter's algorithm: frame is ordered farthest first.
             foreach (ShapeScreenPoints shape in frame)
             {
                 PointF[] pts = shape.PtList.ToArray();
@@ -861,7 +873,7 @@ namespace ThreeDApp2
             g.Restore(state);
 
             DrawGizmo(g);
-            if (mShowHud) DrawHud(g, frame.Count);
+            if (mShowHud) DrawHud(g, visibleShapes);
         }
 
         /// <summary>
@@ -972,10 +984,11 @@ namespace ThreeDApp2
             {
                 string.Format("Shapes: {0} ({1} visible)   Turn {2:0}°  Tilt {3:0}°  Distance {4:0.#}  FOV {5:0}°   Tool: {6}",
                     mScene.Layers.Count, visibleLayers, mScene.Yaw, mScene.Pitch, mScene.Distance, mFov, mTool),
-                string.Format("Mode: {0}{1}{2}",
+                string.Format("Mode: {0}{1}{2}   Renderer: {3}",
                     mWireframe ? "wireframe" : "filled",
                     mTranslucent && !mWireframe ? ", translucent" : "",
-                    mSpinTimer.Enabled ? ", spinning" : ""),
+                    mSpinTimer.Enabled ? ", spinning" : "",
+                    mGpu != null ? "GPU, " + mGpuDescription : "Standard"),
                 "",
                 "Tools: S select  L line  R rectangle  C circle  P push/pull  M move  H pan  O orbit   Esc: cancel",
                 "While drawing: type a length + Enter   Enter/double-click: finish line   Backspace: remove point",

@@ -16,6 +16,9 @@ namespace ThreeDApp2
         /// <summary>Show the navigation gizmo in the top-right corner of the viewport.</summary>
         public bool ShowGizmo = true;
 
+        /// <summary>"standard" (GDI+, works everywhere) or "gpu" (OpenGL).</summary>
+        public string Renderer = "standard";
+
         public static AppSettings Load(string path)
         {
             AppSettings s = new AppSettings();
@@ -28,10 +31,12 @@ namespace ThreeDApp2
                     int eq = line.IndexOf('=');
                     if (eq <= 0) continue;
                     string key = line.Substring(0, eq).Trim();
-                    bool value = line.Substring(eq + 1).Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
+                    string text = line.Substring(eq + 1).Trim();
+                    bool value = text.Equals("true", StringComparison.OrdinalIgnoreCase);
                     if (key == "CenterOnLaunch") s.CenterOnLaunch = value;
                     else if (key == "GroundAndSky") s.GroundAndSky = value;
                     else if (key == "ShowGizmo") s.ShowGizmo = value;
+                    else if (key == "Renderer") s.Renderer = text.Equals("gpu", StringComparison.OrdinalIgnoreCase) ? "gpu" : "standard";
                 }
             }
             catch (Exception)
@@ -50,6 +55,7 @@ namespace ThreeDApp2
                 "CenterOnLaunch=" + (CenterOnLaunch ? "true" : "false"),
                 "GroundAndSky=" + (GroundAndSky ? "true" : "false"),
                 "ShowGizmo=" + (ShowGizmo ? "true" : "false"),
+                "Renderer=" + Renderer,
             });
         }
     }
