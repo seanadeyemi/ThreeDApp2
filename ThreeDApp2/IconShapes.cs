@@ -30,7 +30,7 @@ namespace ThreeDApp2
 
         public static readonly string[] Names =
         {
-            "select", "line", "rectangle", "circle", "pushpull", "move", "pan", "pan-grab",
+            "select", "line", "rectangle", "circle", "pushpull", "move", "pan", "pan-grab", "orbit",
             "undo", "redo", "view-front", "view-top", "view-left", "view-right", "view-iso",
             "grid", "axes", "color", "delete", "options",
         };
@@ -83,6 +83,13 @@ namespace ThreeDApp2
                 case "pan":
                 case "pan-grab":
                     Hand(p, name == "pan-grab");
+                    break;
+
+                case "orbit":
+                    p.Add(Ellipse(Color.FromArgb(205, 225, 250), Ink, 1.1f, 6.5f, 6.5f, 17.5f, 17.5f));        // the model
+                    p.Add(Ellipse(Color.Empty, Color.FromArgb(120, 45, 45, 50), 0.9f, 6.5f, 10.2f, 17.5f, 13.8f)); // its equator
+                    ArrowArc(p, Red, 12, 12, 10, 200, 340);                                                      // round the bottom
+                    ArrowArc(p, Red, 12, 12, 10, 20, 160);                                                       // round the top
                     break;
 
                 case "undo":
@@ -181,6 +188,18 @@ namespace ThreeDApp2
                 pts.Add(new PointF(cx + r * (float)Math.Cos(a), cy - r * (float)Math.Sin(a)));
             }
             return pts;
+        }
+
+        /// <summary>An arc with an arrowhead at its end.</summary>
+        static void ArrowArc(List<IconPrim> p, Color c, float cx, float cy, float r, float fromDeg, float toDeg)
+        {
+            List<PointF> arc = Arc(cx, cy, r, fromDeg, toDeg - 14, 12);
+            p.Add(new IconPrim { Kind = IconPrimKind.Lines, Points = arc.ToArray(), Stroke = c, Width = 2f });
+            double a = toDeg * Math.PI / 180, b = (toDeg - 14) * Math.PI / 180;
+            PointF tip = new PointF(cx + r * (float)Math.Cos(a), cy - r * (float)Math.Sin(a));
+            PointF bas = new PointF(cx + r * (float)Math.Cos(b), cy - r * (float)Math.Sin(b));
+            float nx = (float)Math.Cos(b) * 3.2f, ny = -(float)Math.Sin(b) * 3.2f;   // Outward normal at the base
+            p.Add(Poly(c, Color.Empty, 0, tip.X, tip.Y, bas.X + nx, bas.Y + ny, bas.X - nx, bas.Y - ny));
         }
 
         static void Mirror(List<IconPrim> prims)

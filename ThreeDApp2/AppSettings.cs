@@ -13,6 +13,9 @@ namespace ThreeDApp2
         /// <summary>Paint ground and sky with a horizon instead of a plain background.</summary>
         public bool GroundAndSky = true;
 
+        /// <summary>Show the navigation gizmo in the top-right corner of the viewport.</summary>
+        public bool ShowGizmo = true;
+
         public static AppSettings Load(string path)
         {
             AppSettings s = new AppSettings();
@@ -28,6 +31,7 @@ namespace ThreeDApp2
                     bool value = line.Substring(eq + 1).Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
                     if (key == "CenterOnLaunch") s.CenterOnLaunch = value;
                     else if (key == "GroundAndSky") s.GroundAndSky = value;
+                    else if (key == "ShowGizmo") s.ShowGizmo = value;
                 }
             }
             catch (Exception)
@@ -45,6 +49,7 @@ namespace ThreeDApp2
             {
                 "CenterOnLaunch=" + (CenterOnLaunch ? "true" : "false"),
                 "GroundAndSky=" + (GroundAndSky ? "true" : "false"),
+                "ShowGizmo=" + (ShowGizmo ? "true" : "false"),
             });
         }
     }

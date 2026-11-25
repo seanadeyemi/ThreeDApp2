@@ -37,6 +37,7 @@
             this.pushPullBtn = new System.Windows.Forms.ToolStripButton();
             this.moveBtn = new System.Windows.Forms.ToolStripButton();
             this.panBtn = new System.Windows.Forms.ToolStripButton();
+            this.orbitBtn = new System.Windows.Forms.ToolStripButton();
             this.toolSep1 = new System.Windows.Forms.ToolStripSeparator();
             this.undoBtn = new System.Windows.Forms.ToolStripButton();
             this.redoBtn = new System.Windows.Forms.ToolStripButton();
@@ -62,6 +63,7 @@
             this.optionsBtn = new System.Windows.Forms.ToolStripDropDownButton();
             this.centerOnLaunchItem = new System.Windows.Forms.ToolStripMenuItem();
             this.groundSkyItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.gizmoItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.measureStatus = new System.Windows.Forms.ToolStripStatusLabel();
@@ -83,6 +85,7 @@
             this.pushPullBtn,
             this.moveBtn,
             this.panBtn,
+            this.orbitBtn,
             this.toolSep1,
             this.undoBtn,
             this.redoBtn,
@@ -167,6 +170,14 @@
             this.panBtn.Text = "Pan";
             this.panBtn.Click += new System.EventHandler(this.panBtn_Click);
             this.panBtn.ToolTipText = "Pan (H): drag to slide the view";
+            //
+            // orbitBtn
+            //
+            this.orbitBtn.Name = "orbitBtn";
+            this.orbitBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.orbitBtn.Text = "Orbit";
+            this.orbitBtn.Click += new System.EventHandler(this.orbitBtn_Click);
+            this.orbitBtn.ToolTipText = "Orbit (O): drag to turn and tilt the view";
             //
             // undoBtn
             //
@@ -302,7 +313,8 @@
             this.optionsBtn.Text = "Options";
             this.optionsBtn.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.centerOnLaunchItem,
-            this.groundSkyItem});
+            this.groundSkyItem,
+            this.gizmoItem});
             this.optionsBtn.ToolTipText = "Options";
             //
             // centerOnLaunchItem
@@ -318,6 +330,13 @@
             this.groundSkyItem.Name = "groundSkyItem";
             this.groundSkyItem.Text = "Show ground, sky and horizon";
             this.groundSkyItem.Click += new System.EventHandler(this.groundSkyItem_Click);
+            //
+            // gizmoItem
+            //
+            this.gizmoItem.CheckOnClick = true;
+            this.gizmoItem.Name = "gizmoItem";
+            this.gizmoItem.Text = "Show navigation gizmo (top-right corner)";
+            this.gizmoItem.Click += new System.EventHandler(this.gizmoItem_Click);
             //
             // statusStrip1
             //
@@ -387,6 +406,7 @@
         private System.Windows.Forms.ToolStripButton pushPullBtn;
         private System.Windows.Forms.ToolStripButton moveBtn;
         private System.Windows.Forms.ToolStripButton panBtn;
+        private System.Windows.Forms.ToolStripButton orbitBtn;
         private System.Windows.Forms.ToolStripSeparator toolSep1;
         private System.Windows.Forms.ToolStripButton undoBtn;
         private System.Windows.Forms.ToolStripButton redoBtn;
@@ -410,6 +430,7 @@
         private System.Windows.Forms.ToolStripButton deleteBtn;
         private System.Windows.Forms.ToolStripSeparator toolSep5;
         private System.Windows.Forms.ToolStripDropDownButton optionsBtn;
+        private System.Windows.Forms.ToolStripMenuItem gizmoItem;
         private System.Windows.Forms.ToolStripMenuItem centerOnLaunchItem;
         private System.Windows.Forms.ToolStripMenuItem groundSkyItem;
         private System.Windows.Forms.StatusStrip statusStrip1;

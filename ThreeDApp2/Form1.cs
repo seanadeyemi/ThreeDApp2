@@ -89,12 +89,18 @@ namespace ThreeDApp2
             mSpinTimer.Interval = 30;
             mSpinTimer.Tick += (s, e) => { mScene.SetOrbit(mScene.Yaw - 1.5, mScene.Pitch); viewport.Invalidate(); };
 
+            mViewAnimTimer = new Timer(components);
+            mViewAnimTimer.Interval = 15;
+            mViewAnimTimer.Tick += (s, e) => ViewAnimTick();
+
             mSettings = AppSettings.Load(mSettingsPath);
+            mShowGizmo = mSettings.ShowGizmo;
             ApplyToolbarIcons();
 
             mUpdatingUi = true;
             centerOnLaunchItem.Checked = mSettings.CenterOnLaunch;
             groundSkyItem.Checked = mSettings.GroundAndSky;
+            gizmoItem.Checked = mSettings.ShowGizmo;
             planeCombo.Items.AddRange(new object[] { "Front (XY)", "Ground (XZ)", "Side (YZ)" });
             planeCombo.SelectedIndex = (int)mWorkPlane;
             offsetBox.Text = mWorkPlaneOffset.ToString(CultureInfo.CurrentCulture);
@@ -149,7 +155,7 @@ namespace ThreeDApp2
             var icons = new Dictionary<ToolStripItem, string>
             {
                 { selectBtn, "select" }, { lineBtn, "line" }, { rectBtn, "rectangle" }, { circleBtn, "circle" },
-                { pushPullBtn, "pushpull" }, { moveBtn, "move" }, { panBtn, "pan" },
+                { pushPullBtn, "pushpull" }, { moveBtn, "move" }, { panBtn, "pan" }, { orbitBtn, "orbit" },
                 { undoBtn, "undo" }, { redoBtn, "redo" },
                 { frontViewBtn, "view-front" }, { topViewBtn, "view-top" }, { leftViewBtn, "view-left" },
                 { rightViewBtn, "view-right" }, { isoViewBtn, "view-iso" },
@@ -162,6 +168,7 @@ namespace ThreeDApp2
             int cursorSize = Math.Max(32, size + 8);
             mOpenHandCursor = ToolIcons.MakeCursor("pan", cursorSize, Cursors.Hand);
             mGrabHandCursor = ToolIcons.MakeCursor("pan-grab", cursorSize, Cursors.Hand);
+            mOrbitCursor = ToolIcons.MakeCursor("orbit", cursorSize, Cursors.SizeAll);
         }
 
         private void SaveSettings()
@@ -396,6 +403,15 @@ namespace ThreeDApp2
         private void isoViewBtn_Click(object sender, EventArgs e) { IsoView(); }
         private void deleteBtn_Click(object sender, EventArgs e) { DeleteSelected(); }
         private void panBtn_Click(object sender, EventArgs e) { SetTool(Tool.Pan); }
+        private void orbitBtn_Click(object sender, EventArgs e) { SetTool(Tool.Orbit); }
+
+        private void gizmoItem_Click(object sender, EventArgs e)
+        {
+            if (mUpdatingUi) return;
+            mShowGizmo = mSettings.ShowGizmo = gizmoItem.Checked;
+            SaveSettings();
+            viewport.Invalidate();
+        }
 
         private void centerOnLaunchItem_Click(object sender, EventArgs e)
         {
@@ -609,6 +625,7 @@ namespace ThreeDApp2
                 case Keys.G: mShowGrid = !mShowGrid; UpdateToggleButtons(); break;
                 case Keys.A: mShowAxes = !mShowAxes; UpdateToggleButtons(); break;
                 case Keys.H: SetTool(Tool.Pan); break;
+                case Keys.O: SetTool(Tool.Orbit); break;
                 case Keys.F1: mShowHud = !mShowHud; break;
                 case Keys.N: AddLayerBehind(); break;
                 default:
@@ -645,6 +662,7 @@ namespace ThreeDApp2
             mLastMouse = e.Location;
             mCursor = ToScene(e.Location);
             mCursorInside = true;
+            if (GizmoMouseDown(e)) { viewport.Invalidate(); return; }
             if (e.Button == MouseButtons.Right || e.Button == MouseButtons.Middle)
             {
                 if (ModifierKeys.HasFlag(Keys.Shift)) { mPanning = true; viewport.Cursor = mGrabHandCursor; }
@@ -664,6 +682,7 @@ namespace ThreeDApp2
 
             if (mPanning) { Pan(dx, dy); }
             else if (mOrbiting) { Orbit(dx, dy); }
+            else if ((mGizmoDragging || e.Button == MouseButtons.None) && GizmoMouseMove(e, dx, dy)) { }
             else ToolMouseMove(e, dx, dy);
 
             UpdateHover();
@@ -673,6 +692,7 @@ namespace ThreeDApp2
 
         private void Viewport_MouseUp(object sender, MouseEventArgs e)
         {
+            if (GizmoMouseUp(e)) { viewport.Invalidate(); return; }
             if (e.Button == MouseButtons.Right || e.Button == MouseButtons.Middle)
             {
                 if (mPanning) SetToolCursor();
@@ -689,6 +709,7 @@ namespace ThreeDApp2
 
         private void Viewport_MouseDoubleClick(object sender, MouseEventArgs e)
         {
+            if (mShowGizmo && mGizmo.Contains(e.Location)) return;
             if (e.Button == MouseButtons.Left) ToolDoubleClick(e);
             viewport.Invalidate();
         }
@@ -772,6 +793,7 @@ namespace ThreeDApp2
 
             g.Restore(state);
 
+            DrawGizmo(g);
             if (mShowHud) DrawHud(g, frame.Count);
         }
 
@@ -888,9 +910,9 @@ namespace ThreeDApp2
                     mTranslucent && !mWireframe ? ", translucent" : "",
                     mSpinTimer.Enabled ? ", spinning" : ""),
                 "",
-                "Tools: S select  L line  R rectangle  C circle  P push/pull  M move  H pan   Esc: cancel",
+                "Tools: S select  L line  R rectangle  C circle  P push/pull  M move  H pan  O orbit   Esc: cancel",
                 "While drawing: type a length + Enter   Enter/double-click: finish line   Backspace: remove point",
-                "Middle/right-drag: orbit   Shift+drag: pan   Wheel: zoom to cursor   Arrows: pan   PgUp/PgDn: field of view",
+                "Middle/right-drag: orbit   Shift+drag: pan   Wheel: zoom to cursor   Corner gizmo: drag to orbit, click an axis to look along it",
                 "X/Y: tilt/turn (Shift reverses)   Z: zoom extents   Ctrl+1..5: views   Home: start view   Space: spin",
                 "W wireframe  T translucent  G grid  A axes  N add layer  Del delete  Ctrl+Z/Y  Ctrl+S/O/N  F1 hide",
             };

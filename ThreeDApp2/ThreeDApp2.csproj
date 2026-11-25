@@ -59,6 +59,11 @@
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
     <Compile Include="IconShapes.cs" />
+    <Compile Include="OrbitGizmo.cs" />
+    <Compile Include="Form1.Gizmo.cs">
+      <DependentUpon>Form1.cs</DependentUpon>
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Inference.cs" />
     <Compile Include="Matrix3D.cs" />
     <Compile Include="MyPolygon.cs" />

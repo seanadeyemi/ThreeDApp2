@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 namespace ThreeDApp2
 {
-    public enum Tool { Select, Line, Rectangle, Circle, PushPull, Move, Pan }
+    public enum Tool { Select, Line, Rectangle, Circle, PushPull, Move, Pan, Orbit }
 
     public enum WorkPlaneKind { Front, Ground, Side }
 
@@ -91,6 +91,7 @@ namespace ThreeDApp2
             pushPullBtn.Checked = tool == Tool.PushPull;
             moveBtn.Checked = tool == Tool.Move;
             panBtn.Checked = tool == Tool.Pan;
+            orbitBtn.Checked = tool == Tool.Orbit;
             SetToolCursor();
             UpdateHover();
             UpdateStatus();
@@ -105,11 +106,13 @@ namespace ThreeDApp2
                 case Tool.Move: viewport.Cursor = Cursors.SizeAll; break;
                 case Tool.PushPull: viewport.Cursor = Cursors.SizeNS; break;
                 case Tool.Pan: viewport.Cursor = mPanDragging ? mGrabHandCursor : mOpenHandCursor; break;
+                case Tool.Orbit: viewport.Cursor = mOrbitCursor; break;
                 default: viewport.Cursor = Cursors.Cross; break;
             }
         }
 
         bool mPanDragging;
+        bool mOrbitDragging;
 
         private void CancelOperation()
         {
@@ -209,6 +212,7 @@ namespace ThreeDApp2
                     break;
 
                 case Tool.Pan:
+                case Tool.Orbit:
                     mSnap = new SnapResult();
                     break;
 
@@ -256,6 +260,10 @@ namespace ThreeDApp2
                     StopSpin();
                     SetToolCursor();   // Closed hand while dragging
                     break;
+                case Tool.Orbit:
+                    mOrbitDragging = true;
+                    StopSpin();
+                    break;
             }
             UpdateHover();
             UpdateStatus();
@@ -267,6 +275,11 @@ namespace ThreeDApp2
             if (mTool == Tool.Pan && mPanDragging && e.Button == MouseButtons.Left)
             {
                 Pan(dx, dy);
+                return;
+            }
+            if (mTool == Tool.Orbit && mOrbitDragging && e.Button == MouseButtons.Left)
+            {
+                Orbit(dx, dy);
                 return;
             }
             if (mTool == Tool.Select && mSelectOrbit && e.Button == MouseButtons.Left)
@@ -290,6 +303,11 @@ namespace ThreeDApp2
         private void ToolMouseUp(MouseEventArgs e)
         {
             mSelectOrbit = false;
+            if (mOrbitDragging)
+            {
+                mOrbitDragging = false;
+                return;
+            }
             if (mPanDragging)
             {
                 mPanDragging = false;
@@ -758,6 +776,9 @@ namespace ThreeDApp2
                     break;
                 case Tool.Pan:
                     hint = "Pan: drag to slide the view. Esc or S returns to Select.";
+                    break;
+                case Tool.Orbit:
+                    hint = "Orbit: drag to turn and tilt the view. Esc or S returns to Select.";
                     break;
                 default:
                     hint = mSelected >= 0
