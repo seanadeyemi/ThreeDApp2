@@ -8,293 +8,264 @@ namespace ThreeDApp2
 {
     public partial class Form1 : Form
     {
-        Point3D mCamera;
-        Point3D mScreen;
-        MyPolygon[] mShape = new MyPolygon[3];
-        ShapeScreenPoints[] screenPoints = new ShapeScreenPoints[3];
-        Point3D point0 = new Point3D(0, 0, 0); //Used for reference
-        Point3D shapeOrigin = new Point3D(0, 0, 0);
+        const float LayerSpacing = 10;   // Gap between layers added with N
+        const int MinLayers = 1;
+        const int MaxLayers = 12;
 
-        int s = 10;
+        // One colour per layer, cycled if there are more layers than colours.
+        static readonly Color[] LayerColors =
+        {
+            Color.FromArgb(70, 130, 180),  // steel blue
+            Color.FromArgb(205, 92, 92),   // indian red
+            Color.FromArgb(60, 179, 113),  // sea green
+            Color.FromArgb(218, 165, 32),  // goldenrod
+            Color.FromArgb(147, 112, 219), // medium purple
+            Color.FromArgb(72, 209, 204),  // turquoise
+        };
+
+        Scene mScene;
+        bool mWireframe;
+        bool mShowHud = true;
+        bool mTranslucent;
+        Timer mSpinTimer;
+        bool mDragging;
+        Point mLastMouse;
 
         public Form1()
         {
             InitializeComponent();
             DoubleBuffered = true;
-            this.Load += Form1_Load;
+            ResizeRedraw = true;   // Re-centre the drawing when the window is resized
+            KeyPreview = true;
+
             this.Paint += Form1_Paint;
             this.KeyDown += Form1_KeyDown;
+            this.MouseDown += Form1_MouseDown;
+            this.MouseMove += Form1_MouseMove;
+            this.MouseUp += Form1_MouseUp;
+            this.MouseWheel += Form1_MouseWheel;
 
-            shapeOrigin.X = 0;//ClientRectangle.Width / 2;
-            shapeOrigin.Y = 10;
-            shapeOrigin.Z = 30;
+            mSpinTimer = new Timer(components);
+            mSpinTimer.Interval = 30;
+            mSpinTimer.Tick += (s, e) => { mScene.Rotate(Axis.Y, 1.5); Invalidate(); };
 
-
-            mCamera = new Point3D(0, 0, 0);  // Our viewpoint
-            //mScreen = new Point3D(0, 0, 30); // Where we project the image to
-            mScreen = new Point3D(0, 0, shapeOrigin.Z); // Where we project the image to
-            mShape[0] = new MyPolygon();
-            mShape[1] = new MyPolygon();
-            mShape[2] = new MyPolygon();
-
-
-            screenPoints[0] = new ShapeScreenPoints();
-            screenPoints[1] = new ShapeScreenPoints();
-            screenPoints[2] = new ShapeScreenPoints();
-
-            //mShape[0].SetSize(1);
-            //mShape[1].SetSize(1);
-            //mShape[2].SetSize(1);
-
-            //mShape[0].RemoveAll();
-            //mShape[1].RemoveAll();
-            //mShape[2].RemoveAll();
-
-
-            // Define a shape
-            mShape[0].Add(new Point3D(0, 10, 20));
-            mShape[0].Add(new Point3D(0, 0, 20));
-            mShape[0].Add(new Point3D(10, 0, 20));
-            mShape[0].Add(new Point3D(10, 10, 20));
-            mShape[0].Add(new Point3D(5, 15, 20));
-            mShape[0].Close();
-
-            Set2DPoints(mShape[0], ref screenPoints[0].PtList);
-            screenPoints[0].Z = 20;
-            // Shapes 1 and 2 are exactly the same as Shape 0 ...
-            //mShape[1] = mShape[0];
-            //mShape[2] = mShape[0];
-
-            mShape[1].Add(new Point3D(0, 10, 30));
-            mShape[1].Add(new Point3D(0, 0, 30));
-            mShape[1].Add(new Point3D(10, 0, 30));
-            mShape[1].Add(new Point3D(10, 10, 30));
-            mShape[1].Add(new Point3D(5, 15, 30));
-            mShape[1].Close();
-
-            Set2DPoints(mShape[1], ref screenPoints[1].PtList);
-            screenPoints[1].Z = 30;
-
-            mShape[2].Add(new Point3D(0, 10, 50));
-            mShape[2].Add(new Point3D(0, 0, 50));
-            mShape[2].Add(new Point3D(10, 0, 50));
-            mShape[2].Add(new Point3D(10, 10, 50));
-            mShape[2].Add(new Point3D(5, 15, 50));
-            mShape[2].Close();
-
-            Set2DPoints(mShape[2], ref screenPoints[2].PtList);
-            screenPoints[2].Z = 50;
-
-
-            // ... but at different positions
-            //mShape[1].PtChange(0, 0, 30);
-            //mShape[2].PtChange(0, 0, 50);
-
-            //mShape[1].mPosition.z = 30;
-            //mShape[2].mPosition.z = 50;
-
+            ResetScene();
         }
-        private void Update2dPoints()
+
+        /// <summary>Builds the original three house-shaped layers at Z = 20, 30 and 50.</summary>
+        private void ResetScene()
         {
-            Set2DPoints(mShape[0], ref screenPoints[0].PtList);
-            Set2DPoints(mShape[1], ref screenPoints[1].PtList);
-            Set2DPoints(mShape[2], ref screenPoints[2].PtList);
+            mScene = new Scene();
+            AddHouseLayer(20);
+            AddHouseLayer(30);
+            AddHouseLayer(50);
+
+            // Rotate around the middle of the stack and look straight at it.
+            mScene.Pivot = mScene.Centroid();
+            mScene.Camera = new Point3D(mScene.Pivot.X, mScene.Pivot.Y, 0);
+            mScene.ScreenZ = 30;
+            mScene.Scale = 10;
+            Invalidate();
+        }
+
+        private void AddHouseLayer(float z)
+        {
+            MyPolygon shape = new MyPolygon();
+            shape.Add(new Point3D(0, 10, z));
+            shape.Add(new Point3D(0, 0, z));
+            shape.Add(new Point3D(10, 0, z));
+            shape.Add(new Point3D(10, 10, z));
+            shape.Add(new Point3D(5, 15, z));
+            shape.Close();
+            mScene.Layers.Add(shape);
+        }
+
+        private void AddLayerBehind()
+        {
+            if (mScene.Layers.Count >= MaxLayers) return;
+            float maxZ = float.MinValue;
+            foreach (MyPolygon layer in mScene.Layers)
+                for (int j = 0; j < layer.GetSize(); j++)
+                    maxZ = Math.Max(maxZ, layer.Absolute(j).Z);
+            AddHouseLayer(maxZ + LayerSpacing);
+        }
+
+        private void RemoveLastLayer()
+        {
+            if (mScene.Layers.Count > MinLayers)
+                mScene.Layers.RemoveAt(mScene.Layers.Count - 1);
         }
 
         private void RotateShapes(Axis axis, double degrees)
         {
-            for (int i = 0; i < 3; i++)
-            {
-                // Go thru each point
-                MyPolygon po = new MyPolygon();
-                List<Point> ptList = new List<Point>();
-                float Z = 0;
-                for (int j = 0; j < mShape[i].GetSize(); j++)
-                {
-                    Point3D pt3d = mShape[i].Absolute(j);
-
-                    Point3D rotPt3d = new Point3D(0, 0, 0);
-                    switch (axis)
-                    {
-                        case Axis.X:
-                            pt3d = Point3D.Translate(pt3d, shapeOrigin, point0);
-                            pt3d = Point3D.RotateX(pt3d, degrees);
-                            rotPt3d = Point3D.Translate(pt3d, point0, shapeOrigin);
-                            Z = rotPt3d.Z;
-                            break;
-                        case Axis.Y:
-                            pt3d = Point3D.Translate(pt3d, shapeOrigin, point0);
-                            pt3d = Point3D.RotateY(pt3d, degrees);
-                            rotPt3d = Point3D.Translate(pt3d, point0, shapeOrigin);
-                            //rotPt3d = Point3D.RotateY(pt3d, degrees);
-                            Z = rotPt3d.Z;
-                            break;                           
-                        case Axis.Z:
-                            //rotPt3d = Point3D.RotateZ(pt3d, degrees);
-                            pt3d = Point3D.Translate(pt3d, shapeOrigin, point0);
-                            pt3d = Point3D.RotateZ(pt3d, degrees);
-                            rotPt3d = Point3D.Translate(pt3d, point0, shapeOrigin);
-                            Z = rotPt3d.Z;
-                            break;
-                    }
-
-
-                    po.Add(rotPt3d);
-                    //Update2dPoints();
-                }
-
-                Set2DPoints(po, ref ptList);
-                screenPoints[i].PtList = ptList;
-                screenPoints[i].Z = (int)Z;
-                mShape[i] = po;
-            }
+            mScene.Rotate(axis, degrees);
         }
 
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
-            int delta = 1;
+            // Shift gives finer steps for both moving and rotating.
+            float delta = e.Shift ? 0.25f : 1f;
+            double angle = (e.Shift ? 2 : 10) * (e.Control ? -1 : 1);
 
             switch (e.KeyCode)
             {
-                case Keys.Right:
-                    mCamera.X += delta;
-                    Update2dPoints();
-                    Invalidate();
-                    break;
-                case Keys.Left:
-                    mCamera.X -= delta;
-                    Update2dPoints();
-                    Invalidate();
-                    break;
-                case Keys.Down:
-                    mCamera.Y -= delta;
-                    Update2dPoints();
-                    Invalidate();
-                    break;
-                case Keys.Up:
-                    mCamera.Y += delta;
-                    Update2dPoints();
-                    Invalidate();
-                    break;
+                case Keys.Right: mScene.Camera.X += delta; break;
+                case Keys.Left: mScene.Camera.X -= delta; break;
+                case Keys.Up: mScene.Camera.Y += delta; break;
+                case Keys.Down: mScene.Camera.Y -= delta; break;
+
+                // Move the camera forwards / backwards (numpad or main keyboard)
                 case Keys.Add:
-                    mCamera.Z += delta;
-                    Update2dPoints();
-                    Invalidate();
-                    break;
-
+                case Keys.Oemplus:
+                    mScene.Camera.Z += delta; break;
                 case Keys.Subtract:
-                    mCamera.Z -= delta;
-                    Update2dPoints();
-                    Invalidate();
-                    break;
+                case Keys.OemMinus:
+                    mScene.Camera.Z -= delta; break;
 
-                case Keys.X:
-                    if (ModifierKeys.HasFlag(Keys.Control))
-                    {
-                        RotateShapes(Axis.X, -10);
-                        Invalidate();
-                    }
-                    else
-                    {
-                        RotateShapes(Axis.X, 10);
-                        Invalidate();
-                    }
+                // Zoom the projection without moving the camera
+                case Keys.PageUp: mScene.Scale = Math.Min(100f, mScene.Scale * 1.1f); break;
+                case Keys.PageDown: mScene.Scale = Math.Max(1f, mScene.Scale / 1.1f); break;
+
+                case Keys.X: RotateShapes(Axis.X, angle); break;
+                case Keys.Y: RotateShapes(Axis.Y, angle); break;
+                case Keys.Z: RotateShapes(Axis.Z, angle); break;
+
+                case Keys.Space: mSpinTimer.Enabled = !mSpinTimer.Enabled; break;
+                case Keys.W: mWireframe = !mWireframe; break;
+                case Keys.T: mTranslucent = !mTranslucent; break;
+                case Keys.H:
+                case Keys.F1:
+                    mShowHud = !mShowHud; break;
+                case Keys.N: AddLayerBehind(); break;
+                case Keys.Delete:
+                case Keys.Back:
+                    RemoveLastLayer(); break;
+                case Keys.R:
+                case Keys.Home:
+                    mSpinTimer.Enabled = false;
+                    ResetScene();
                     break;
-                case Keys.Y:
-                    if (ModifierKeys.HasFlag(Keys.Control))
-                    {
-                        RotateShapes(Axis.Y, -10);
-                        Invalidate();
-                    }
-                    else
-                    {
-                        RotateShapes(Axis.Y, 10);
-                        Invalidate();
-                    }
-                    break;
-                case Keys.Z:
-                    if (ModifierKeys.HasFlag(Keys.Control))
-                    {
-                        RotateShapes(Axis.Z, -10);
-                        Invalidate();
-                    }
-                    else
-                    {
-                        RotateShapes(Axis.Z, 10);
-                        Invalidate();
-                    }
-                    break;
+                default:
+                    return;
             }
+            e.Handled = true;
+            Invalidate();
+        }
+
+        // Arrow keys are normally swallowed for focus navigation; make sure they reach KeyDown.
+        protected override bool ProcessDialogKey(Keys keyData)
+        {
+            switch (keyData & Keys.KeyCode)
+            {
+                case Keys.Up:
+                case Keys.Down:
+                case Keys.Left:
+                case Keys.Right:
+                    return false;
+            }
+            return base.ProcessDialogKey(keyData);
+        }
+
+        private void Form1_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                mDragging = true;
+                mLastMouse = e.Location;
+            }
+        }
+
+        private void Form1_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (!mDragging) return;
+            int dx = e.X - mLastMouse.X;
+            int dy = e.Y - mLastMouse.Y;
+            mLastMouse = e.Location;
+            if (dx != 0) mScene.Rotate(Axis.Y, -dx * 0.5);
+            if (dy != 0) mScene.Rotate(Axis.X, -dy * 0.5);
+            Invalidate();
+        }
+
+        private void Form1_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left) mDragging = false;
+        }
+
+        private void Form1_MouseWheel(object sender, MouseEventArgs e)
+        {
+            mScene.Camera.Z += Math.Sign(e.Delta) * 2f;
+            Invalidate();
         }
 
         private void Form1_Paint(object sender, PaintEventArgs e)
         {
-            //throw new NotImplementedException();
-            //int s = 10;  // Just for scaling
-            Point pt = new Point();
             Graphics g = e.Graphics;
-            g.TranslateTransform(ClientRectangle.Width / 2, ClientRectangle.Height / 2);
-            Point startPt = new Point();
+            g.Clear(Color.FromArgb(245, 245, 248));
             g.SmoothingMode = SmoothingMode.AntiAlias;
-            Matrix m;
 
-            Array.Sort(screenPoints);
-            Array.Reverse(screenPoints);
+            GraphicsState state = g.Save();
+            g.TranslateTransform(ClientSize.Width / 2f, ClientSize.Height / 2f);
 
-            // Draw each of our shapes
-            for (int i = 0; i < 3; i++)
+            List<ShapeScreenPoints> frame = mScene.BuildFrame();
+
+            // Painter's algorithm: frame is ordered farthest first.
+            foreach (ShapeScreenPoints shape in frame)
             {
+                PointF[] pts = shape.PtList.ToArray();
+                Color baseColor = LayerColors[shape.LayerIndex % LayerColors.Length];
 
-                
-                g.FillPolygon(Brushes.DarkGray, screenPoints[i].PtList.ToArray());
-                // Go thru each point
-                for (int j = 0; j < mShape[i].GetSize(); j++)
+                if (!mWireframe && pts.Length >= 3)
                 {
-                    var obj = mShape[i].Absolute(j);//[j];
-
-                    //pt.X = (Int32)(s * (obj.X - mCamera.X) * mScreen.Z / (obj.Z - mCamera.Z));
-                    //pt.Y = (Int32)(s * (obj.Y - mCamera.Y) * mScreen.Z / (obj.Z - mCamera.Z));
-
-                    pt = screenPoints[i].PtList[j];
-
-                    if (j == 0)
-                    {
-                        startPt = pt;
-
-                    }
-                    else
-                    {
-                        g.DrawLine(Pens.Black, startPt, pt);  // Draw a line to the others
-                        startPt = pt;
-                    }
-
+                    int alpha = mTranslucent ? 150 : 255;
+                    using (SolidBrush brush = new SolidBrush(Darken(baseColor, shape.Shade, alpha)))
+                        g.FillPolygon(brush, pts);
                 }
+                using (Pen pen = new Pen(mWireframe ? baseColor : Darken(baseColor, 0.45f, 255), 1.5f))
+                    g.DrawPolygon(pen, pts);
             }
+
+            g.Restore(state);
+
+            if (mShowHud) DrawHud(g, frame.Count);
         }
 
-        private void Set2DPoints(MyPolygon polygon, ref List<Point> ptList)
+        private void DrawHud(Graphics g, int visibleLayers)
         {
-            ptList.Clear();
-            for (int j = 0; j < polygon.GetSize(); j++)
+            Point3D c = mScene.Camera;
+            string[] lines =
             {
-                Point pt = new Point();
-                var obj = polygon.Absolute(j);//[j];
-                pt.X = (Int32)(s * (obj.X - mCamera.X) * mScreen.Z / (obj.Z - mCamera.Z));
-                pt.Y = (Int32)(s * (obj.Y - mCamera.Y) * mScreen.Z / (obj.Z - mCamera.Z));
+                string.Format("Layers: {0} ({1} visible)   Camera: ({2:0.##}, {3:0.##}, {4:0.##})   Zoom: {5:0.#}",
+                    mScene.Layers.Count, visibleLayers, c.X, c.Y, c.Z, mScene.Scale),
+                string.Format("Mode: {0}{1}{2}",
+                    mWireframe ? "wireframe" : "filled",
+                    mTranslucent && !mWireframe ? ", translucent" : "",
+                    mSpinTimer.Enabled ? ", spinning" : ""),
+                "",
+                "Arrows: move camera   +/-  or wheel: forward/back   PgUp/PgDn: zoom",
+                "X/Y/Z: rotate (Ctrl reverses, Shift = fine)   Drag mouse: rotate",
+                "Space: spin   W: wireframe   T: translucent   N/Del: add/remove layer",
+                "R: reset view   H: hide this help",
+            };
 
-                ptList.Add(pt);
+            using (Font font = new Font("Consolas", 9f))
+            using (SolidBrush back = new SolidBrush(Color.FromArgb(190, 255, 255, 255)))
+            {
+                float lineHeight = font.GetHeight(g);
+                float width = 0;
+                foreach (string line in lines)
+                    width = Math.Max(width, g.MeasureString(line, font).Width);
+                RectangleF box = new RectangleF(8, 8, width + 12, lineHeight * lines.Length + 10);
+                g.FillRectangle(back, box);
+                g.DrawRectangle(Pens.Silver, box.X, box.Y, box.Width, box.Height);
+                for (int i = 0; i < lines.Length; i++)
+                    g.DrawString(lines[i], font, Brushes.Black, box.X + 6, box.Y + 5 + i * lineHeight);
             }
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private static Color Darken(Color c, float factor, int alpha)
         {
-            //throw new NotImplementedException();
+            factor = Math.Max(0f, Math.Min(1f, factor));
+            return Color.FromArgb(alpha, (int)(c.R * factor), (int)(c.G * factor), (int)(c.B * factor));
         }
-    }
-
-    public enum Axis
-    {
-        X, Y, Z
     }
 }
-
