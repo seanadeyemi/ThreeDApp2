@@ -67,6 +67,9 @@
             this.centerOnLaunchItem = new System.Windows.Forms.ToolStripMenuItem();
             this.groundSkyItem = new System.Windows.Forms.ToolStripMenuItem();
             this.gizmoItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.renderBtn = new System.Windows.Forms.ToolStripDropDownButton();
+            this.standardRenderItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.gpuRenderItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStatus = new System.Windows.Forms.ToolStripStatusLabel();
             this.measureStatus = new System.Windows.Forms.ToolStripStatusLabel();
@@ -114,6 +117,7 @@
             this.colorBtn,
             this.deleteBtn,
             this.toolSep5,
+            this.renderBtn,
             this.optionsBtn});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
@@ -328,6 +332,28 @@
             this.deleteBtn.Click += new System.EventHandler(this.deleteBtn_Click);
             this.deleteBtn.ToolTipText = "Delete the selected shape (Del)";
             //
+            // renderBtn
+            //
+            this.renderBtn.Name = "renderBtn";
+            this.renderBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.ImageAndText;
+            this.renderBtn.Text = "Standard";
+            this.renderBtn.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.standardRenderItem,
+            this.gpuRenderItem});
+            this.renderBtn.ToolTipText = "Renderer";
+            //
+            // standardRenderItem
+            //
+            this.standardRenderItem.Name = "standardRenderItem";
+            this.standardRenderItem.Text = "Standard (GDI+): works on every PC";
+            this.standardRenderItem.Click += new System.EventHandler(this.standardRenderItem_Click);
+            //
+            // gpuRenderItem
+            //
+            this.gpuRenderItem.Name = "gpuRenderItem";
+            this.gpuRenderItem.Text = "GPU (OpenGL): faster, exact overlaps, smooth edges";
+            this.gpuRenderItem.Click += new System.EventHandler(this.gpuRenderItem_Click);
+            //
             // optionsBtn
             //
             this.optionsBtn.Name = "optionsBtn";
@@ -456,6 +482,9 @@
         private System.Windows.Forms.ToolStripSeparator toolSep5;
         private System.Windows.Forms.ToolStripDropDownButton optionsBtn;
         private System.Windows.Forms.ToolStripMenuItem gizmoItem;
+        private System.Windows.Forms.ToolStripDropDownButton renderBtn;
+        private System.Windows.Forms.ToolStripMenuItem standardRenderItem;
+        private System.Windows.Forms.ToolStripMenuItem gpuRenderItem;
         private System.Windows.Forms.ToolStripMenuItem centerOnLaunchItem;
         private System.Windows.Forms.ToolStripMenuItem groundSkyItem;
         private System.Windows.Forms.StatusStrip statusStrip1;

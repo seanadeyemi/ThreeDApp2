@@ -30,7 +30,7 @@ namespace ThreeDApp2
 
         public static readonly string[] Names =
         {
-            "select", "line", "rectangle", "circle", "pushpull", "move", "pan", "pan-grab", "orbit", "import", "export",
+            "select", "line", "rectangle", "circle", "pushpull", "move", "pan", "pan-grab", "orbit", "import", "export", "render",
             "undo", "redo", "view-front", "view-top", "view-left", "view-right", "view-iso",
             "grid", "axes", "color", "delete", "options",
         };
@@ -109,6 +109,15 @@ namespace ThreeDApp2
                             p.Add(Poly(arrow, Color.Empty, 0, 7.5f, 7.5f, 16.5f, 7.5f, 12, 1.5f));
                         }
                     }
+                    break;
+
+                case "render":
+                    // A graphics card: board, fan and connector pins.
+                    p.Add(Poly(Color.FromArgb(40, 120, 80), Ink, 1.1f, 2, 6, 22, 6, 22, 17, 2, 17));
+                    p.Add(Ellipse(Color.FromArgb(70, 75, 85), Color.FromArgb(200, 205, 215), 1f, 10, 7.5f, 19, 15.5f));
+                    p.Add(Ellipse(Color.FromArgb(200, 205, 215), Color.Empty, 0, 13.6f, 10.6f, 15.4f, 12.4f));
+                    p.Add(Poly(Color.FromArgb(240, 185, 40), Color.Empty, 0, 4, 8.5f, 8, 8.5f, 8, 11, 4, 11));
+                    for (int i = 0; i < 5; i++) p.Add(Line(Color.FromArgb(230, 180, 40), 1.4f, 5 + i * 3, 17.5f, 5 + i * 3, 20.5f));
                     break;
 
                 case "undo":
