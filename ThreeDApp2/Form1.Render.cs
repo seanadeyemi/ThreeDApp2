@@ -64,7 +64,7 @@ namespace ThreeDApp2
                     Wireframe = mWireframe,
                     Translucent = mTranslucent,
                     Selected = mSelected >= 0 ? mScene.GroupMembers(mSelected) : new System.Collections.Generic.List<int>(),
-                    Hover = mHoverIndex,
+                    Hover = -1,   // Hover is drawn as an overlay, so it doesn't force a redraw
                     ColorOf = EffectiveColor,
                 };
                 GpuFrame frame = GpuScene.Build(mScene, viewport.ClientSize.Width, viewport.ClientSize.Height, style);

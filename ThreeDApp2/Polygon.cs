@@ -100,6 +100,12 @@ namespace ThreeDApp2
             get { return m_point.AsReadOnly(); }
         }
 
+        /// <summary>The vertex list itself, for fast read-only loops over big models. Don't add or remove through it.</summary>
+        public List<Point3D> RawPoints
+        {
+            get { return m_point; }
+        }
+
         public void InsertAt(int index, Point3D P)
         {
             m_point.Insert(index, P);

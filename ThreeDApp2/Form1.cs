@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Windows.Forms;
 
 namespace ThreeDApp2
@@ -82,12 +84,12 @@ namespace ThreeDApp2
             viewport.MouseWheel += Viewport_MouseWheel;
             viewport.MouseLeave += (s, e) => { mCursorInside = false; viewport.Invalidate(); };
             this.KeyDown += Form1_KeyDown;
-            this.FormClosing += (s, e) => { Autosave(); if (mGpu != null) { mGpu.Dispose(); mGpu = null; } };
+            this.FormClosing += (s, e) => { Autosave(true); if (mGpu != null) { mGpu.Dispose(); mGpu = null; } };
             viewport.Resize += (s, e) => { ApplyFieldOfView(); viewport.Invalidate(); };
 
             mSpinTimer = new Timer(components);
             mSpinTimer.Interval = 30;
-            mSpinTimer.Tick += (s, e) => { mScene.SetOrbit(mScene.Yaw - 1.5, mScene.Pitch); viewport.Invalidate(); };
+            mSpinTimer.Tick += (s, e) => { mScene.SetOrbit(mScene.Yaw - 1.5, mScene.Pitch); NoteViewChange(); viewport.Invalidate(); };
 
             mViewAnimTimer = new Timer(components);
             mViewAnimTimer.Interval = 15;
@@ -233,12 +235,14 @@ namespace ThreeDApp2
         /// </summary>
         private void Orbit(int dx, int dy)
         {
+            NoteViewChange();
             mScene.SetOrbit(mScene.Yaw - dx * OrbitDegreesPerPixel, mScene.Pitch + dy * OrbitDegreesPerPixel);
         }
 
         /// <summary>Slides the view so the scene follows the mouse; the orbit centre moves with it.</summary>
         private void Pan(int dx, int dy)
         {
+            NoteViewChange();
             mScene.PanPixels(dx, dy);
         }
 
@@ -281,9 +285,29 @@ namespace ThreeDApp2
         /// <summary>Call after every change to the shapes: refreshes the UI and autosaves.</summary>
         private void Committed()
         {
+            mScene.Touch();
             RefreshShapesCombo();
-            Autosave();
+            ScheduleAutosave();
             viewport.Invalidate();
+        }
+
+        // Autosave a moment after the last change instead of on every change: writing a big model
+        // takes a while, and a burst of edits then costs one save. Closing the app saves at once.
+        Timer mAutosaveTimer;
+        bool mAutosavePending;
+
+        private void ScheduleAutosave()
+        {
+            if (mAutosaveTimer == null)
+            {
+                mAutosaveTimer = new Timer(components);
+                mAutosaveTimer.Interval = 1500;
+                mAutosaveTimer.Tick += (s, e) => { mAutosaveTimer.Stop(); if (mAutosavePending) Autosave(); };
+            }
+            mAutosavePending = true;
+            saveStatus.Text = "Unsaved changes";
+            mAutosaveTimer.Stop();
+            mAutosaveTimer.Start();
         }
 
         private void Undo()
@@ -304,19 +328,39 @@ namespace ThreeDApp2
             Committed();
         }
 
-        private void Autosave()
+        System.Threading.Tasks.Task mSaveTask;
+
+        /// <summary>
+        /// Saves now. Writing a big model takes a while, so the shapes are copied (fast) and the file is
+        /// written in the background; pass wait = true (closing the app) to finish before returning.
+        /// </summary>
+        private void Autosave(bool wait = false)
         {
-            try
+            mAutosavePending = false;
+            Scene copy = new Scene
             {
-                SceneFile.Save(mScene, mAutosavePath);
-                if (!string.IsNullOrEmpty(mFilePath))
-                    SceneFile.Save(mScene, mFilePath);
-                saveStatus.Text = "Autosaved " + DateTime.Now.ToString("t");
-            }
-            catch (Exception ex)
+                Layers = UndoStack.Copy(mScene.Layers),
+                Camera = mScene.Camera.Clone(), Pivot = mScene.Pivot.Clone(), Orientation = mScene.Orientation.Clone(),
+                Scale = mScene.Scale, ScreenZ = mScene.ScreenZ,
+            };
+            string autosavePath = mAutosavePath, filePath = mFilePath;
+            System.Threading.Tasks.Task previous = mSaveTask;
+            mSaveTask = System.Threading.Tasks.Task.Run(() =>
             {
-                saveStatus.Text = "Autosave failed: " + ex.Message;
+                if (previous != null) { try { previous.Wait(); } catch (Exception) { } }   // Writes stay in order
+                SceneFile.Save(copy, autosavePath);
+                if (!string.IsNullOrEmpty(filePath)) SceneFile.Save(copy, filePath);
+            });
+            System.Threading.Tasks.Task task = mSaveTask;
+            if (wait)
+            {
+                try { task.Wait(); } catch (AggregateException ex) { saveStatus.Text = "Autosave failed: " + ex.InnerException.Message; }
+                return;
             }
+            task.ContinueWith(t =>
+            {
+                saveStatus.Text = t.IsFaulted ? "Autosave failed: " + t.Exception.InnerException.Message : "Autosaved " + DateTime.Now.ToString("t");
+            }, System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
         }
 
         private bool LoadAutosave()
@@ -555,18 +599,26 @@ namespace ThreeDApp2
             viewport.Invalidate();
         }
 
+        const int MaxListedShapes = 1000;
+
         private void RefreshShapesCombo()
         {
             mUpdatingUi = true;
             shapesCombo.BeginUpdate();
             shapesCombo.Items.Clear();
-            for (int i = 0; i < mScene.Layers.Count; i++)
+            // A list of tens of thousands of entries is slow to fill and useless to scroll, so big
+            // models list the first ones only; any shape can still be picked in the view.
+            int listed = Math.Min(mScene.Layers.Count, MaxListedShapes);
+            for (int i = 0; i < listed; i++)
             {
                 string name = mScene.Layers[i].Name;
                 shapesCombo.Items.Add(string.IsNullOrEmpty(name) ? "Shape " + (i + 1) : name);
             }
             if (mSelected >= mScene.Layers.Count) mSelected = -1;
-            shapesCombo.SelectedIndex = mSelected;
+            shapesCombo.SelectedIndex = mSelected < listed ? mSelected : -1;
+            shapesCombo.ToolTipText = mScene.Layers.Count > listed
+                ? string.Format("Showing the first {0} of {1} shapes; click any shape in the view to select it", listed, mScene.Layers.Count)
+                : "";
             shapesCombo.EndUpdate();
             mUpdatingUi = false;
             undoBtn.Enabled = mUndo.CanUndo;
@@ -748,12 +800,14 @@ namespace ThreeDApp2
             mCursor = ToScene(e.Location);
             mCursorInside = true;
 
+            bool viewDrag = mPanning || mOrbiting || mGizmoDragging || mOrbitDragging || mPanDragging || mSelectOrbit;
             if (mPanning) { Pan(dx, dy); }
             else if (mOrbiting) { Orbit(dx, dy); }
             else if ((mGizmoDragging || e.Button == MouseButtons.None) && GizmoMouseMove(e, dx, dy)) { }
             else ToolMouseMove(e, dx, dy);
 
-            UpdateHover();
+            if (viewDrag) { mHoverIndex = -1; mSnap = new SnapResult(); }   // Nothing to hover while the view moves
+            else UpdateHover();
             UpdateStatus();
             viewport.Invalidate();
         }
@@ -785,6 +839,7 @@ namespace ThreeDApp2
         private void Viewport_MouseWheel(object sender, MouseEventArgs e)
         {
             // Zoom towards the point under the cursor, like SketchUp.
+            NoteViewChange();
             mScene.Dolly(e.Delta > 0 ? 0.85f : 1 / 0.85f, ToScene(e.Location));
             UpdateHover();
             viewport.Invalidate();
@@ -794,64 +849,76 @@ namespace ThreeDApp2
 
         #region Painting
 
+        // The sky, grid, axes and shapes are kept as one picture and only redrawn when the view, the
+        // shapes or a display setting change. Plain mouse moves (hover, drawing previews) then cost one
+        // copy of that picture plus the small overlays, however big the model is.
+        Bitmap mSceneLayer;
+        string mSceneLayerKey;
+        int mVisibleShapes;
+        bool mDraftQuality;                 // Orbiting/zooming a big model: skip antialiasing until it stops
+        Timer mQualityTimer;
+        const int DraftQualityShapes = 1500;
+
+        /// <summary>Call whenever the view moves. Big models draw quickly while moving, then sharpen.</summary>
+        private void NoteViewChange()
+        {
+            if (mScene == null || mScene.Layers.Count < DraftQualityShapes) return;
+            mDraftQuality = true;
+            if (mQualityTimer == null)
+            {
+                mQualityTimer = new Timer(components);
+                mQualityTimer.Interval = 220;
+                mQualityTimer.Tick += (s, e) => { mQualityTimer.Stop(); mDraftQuality = false; viewport.Invalidate(); };
+            }
+            mQualityTimer.Stop();
+            mQualityTimer.Start();
+        }
+
+        private string SceneLayerKey()
+        {
+            Matrix3D o = mScene.Orientation;
+            StringBuilder k = new StringBuilder(256);
+            for (int r = 0; r < 3; r++) for (int c = 0; c < 3; c++) k.Append(o[r, c].ToString("R", CultureInfo.InvariantCulture)).Append(',');
+            foreach (float v in new[] { mScene.Camera.X, mScene.Camera.Y, mScene.Camera.Z, mScene.Pivot.X, mScene.Pivot.Y, mScene.Pivot.Z, mScene.Scale, mScene.ScreenZ, mWorkPlaneOffset, mInference.GridSpacing })
+                k.Append(v.ToString("R", CultureInfo.InvariantCulture)).Append(',');
+            k.Append(mScene.GeometryVersion).Append(',').Append(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(mScene.Layers)).Append(',')
+             .Append(mScene.Layers.Count).Append(',').Append(mSelected).Append(',').Append((int)mWorkPlane).Append(',')
+             .Append(mWireframe).Append(mTranslucent).Append(mShowGrid).Append(mShowAxes).Append(mSettings.GroundAndSky)
+             .Append(mGpu != null).Append(mDraftQuality).Append(',').Append(viewport.ClientSize.Width).Append('x').Append(viewport.ClientSize.Height);
+            return k.ToString();
+        }
+
         private void Viewport_Paint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
-            g.Clear(viewport.BackColor);
-            if (mSettings.GroundAndSky) DrawGroundAndSky(g);
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-
-            GraphicsState state = g.Save();
-            g.TranslateTransform(viewport.ClientSize.Width / 2f, viewport.ClientSize.Height / 2f);
-
-            if (mShowGrid) DrawGrid(g);
-            if (mShowAxes) DrawAxes(g);
-
-            int visibleShapes = 0;
-            bool drawn = false;
-            if (mGpu != null)
+            int w = Math.Max(1, viewport.ClientSize.Width), h = Math.Max(1, viewport.ClientSize.Height);
+            string key = SceneLayerKey();
+            if (mSceneLayer == null || mSceneLayer.Width != w || mSceneLayer.Height != h || key != mSceneLayerKey)
             {
-                // The GPU picture covers the whole viewport, so draw it without the centring transform.
-                g.Restore(state);
-                drawn = PaintShapesGpu(g, out visibleShapes);
-                state = g.Save();
-                g.TranslateTransform(viewport.ClientSize.Width / 2f, viewport.ClientSize.Height / 2f);
+                if (mSceneLayer == null || mSceneLayer.Width != w || mSceneLayer.Height != h)
+                {
+                    if (mSceneLayer != null) mSceneLayer.Dispose();
+                    mSceneLayer = new Bitmap(w, h, PixelFormat.Format32bppPArgb);
+                }
+                using (Graphics lg = Graphics.FromImage(mSceneLayer))
+                    mVisibleShapes = PaintSceneLayer(lg, w, h);
+                mSceneLayerKey = SceneLayerKey();   // The GPU may have fallen back while drawing
             }
-            List<ShapeScreenPoints> frame = drawn ? new List<ShapeScreenPoints>() : mScene.BuildFrame();
-            if (!drawn) visibleShapes = frame.Count;
-            List<int> selectedGroup = mSelected >= 0 ? mScene.GroupMembers(mSelected) : new List<int>();
+            g.CompositingMode = CompositingMode.SourceCopy;
+            g.DrawImageUnscaled(mSceneLayer, 0, 0);
+            g.CompositingMode = CompositingMode.SourceOver;
 
-            // Standard renderer, painter's algorithm: frame is ordered farthest first.
-            foreach (ShapeScreenPoints shape in frame)
+            // Overlays: hover outline, vertex handles, tool previews, gizmo, help.
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            GraphicsState state = g.Save();
+            g.TranslateTransform(w / 2f, h / 2f);
+
+            if (mHoverIndex >= 0 && mHoverIndex < mScene.Layers.Count && (mSelected < 0 || !mScene.GroupMembers(mSelected).Contains(mHoverIndex)))
             {
-                PointF[] pts = shape.PtList.ToArray();
-                Color baseColor = EffectiveColor(shape.LayerIndex);
-                bool selected = selectedGroup.Contains(shape.LayerIndex);
-                bool hovered = shape.LayerIndex == mHoverIndex && !selected;
-
-                if (shape.Closed)
-                {
-                    if (!mWireframe && pts.Length >= 3)
-                    {
-                        int alpha = mTranslucent ? 150 : 255;
-                        using (SolidBrush brush = new SolidBrush(Darken(baseColor, shape.Shade, alpha)))
-                            g.FillPolygon(brush, pts);
-                    }
-                    using (Pen pen = new Pen(mWireframe ? baseColor : Darken(baseColor, 0.45f, 255), 1.5f))
-                        g.DrawPolygon(pen, pts);
-                }
-                else
-                {
-                    using (Pen pen = new Pen(Darken(baseColor, 0.8f, 255), 2.5f))
-                        g.DrawLines(pen, pts);
-                }
-
-                if (hovered)
+                PointF[] pts = mScene.ScreenVertices(mHoverIndex);
+                if (pts != null && pts.Length >= 2 && !Array.Exists(pts, q => float.IsNaN(q.X)))
                     using (Pen pen = new Pen(Color.FromArgb(160, 30, 144, 255), 3f))
-                        DrawOutline(g, pen, pts, shape.Closed);
-                if (selected)
-                    using (Pen pen = new Pen(Color.FromArgb(255, 140, 0), 3f))
-                        DrawOutline(g, pen, pts, shape.Closed);
+                        DrawOutline(g, pen, pts, mScene.Layers[mHoverIndex].IsClosedFace);
             }
 
             // Vertex handles on the selected shape, for dragging.
@@ -859,13 +926,14 @@ namespace ThreeDApp2
             {
                 MyPolygon sel = mScene.Layers[mSelected];
                 int count = Scene.VertexCount(sel);
-                for (int j = 0; j < count; j++)
-                {
-                    PointF p;
-                    if (!mScene.TryProjectModel(sel.Absolute(j), out p)) continue;
-                    g.FillRectangle(Brushes.White, p.X - 3.5f, p.Y - 3.5f, 7, 7);
-                    g.DrawRectangle(Pens.DarkOrange, p.X - 3.5f, p.Y - 3.5f, 7, 7);
-                }
+                if (count <= 2000)
+                    for (int j = 0; j < count; j++)
+                    {
+                        PointF p;
+                        if (!mScene.TryProjectModel(sel.Absolute(j), out p)) continue;
+                        g.FillRectangle(Brushes.White, p.X - 3.5f, p.Y - 3.5f, 7, 7);
+                        g.DrawRectangle(Pens.DarkOrange, p.X - 3.5f, p.Y - 3.5f, 7, 7);
+                    }
             }
 
             DrawToolPreview(g);
@@ -873,7 +941,74 @@ namespace ThreeDApp2
             g.Restore(state);
 
             DrawGizmo(g);
-            if (mShowHud) DrawHud(g, visibleShapes);
+            if (mShowHud) DrawHud(g, mVisibleShapes);
+        }
+
+        /// <summary>Draws the sky, grid, axes and every shape. Returns how many shapes were visible.</summary>
+        private int PaintSceneLayer(Graphics g, int w, int h)
+        {
+            g.Clear(viewport.BackColor);
+            if (mSettings.GroundAndSky) DrawGroundAndSky(g);
+            bool fast = mDraftQuality && mScene.Layers.Count >= DraftQualityShapes;
+            g.SmoothingMode = fast ? SmoothingMode.HighSpeed : SmoothingMode.AntiAlias;
+
+            GraphicsState state = g.Save();
+            g.TranslateTransform(w / 2f, h / 2f);
+            if (mShowGrid) DrawGrid(g);
+            if (mShowAxes) DrawAxes(g);
+            g.Restore(state);
+
+            if (mGpu != null)
+            {
+                int visible;
+                if (PaintShapesGpu(g, out visible)) return visible;
+            }
+
+            g.TranslateTransform(w / 2f, h / 2f);
+            List<ShapeScreenPoints> frame = mScene.Frame();
+            HashSet<int> selectedGroup = new HashSet<int>(mSelected >= 0 ? mScene.GroupMembers(mSelected) : new List<int>());
+            RectangleF view = new RectangleF(-w / 2f - 4, -h / 2f - 4, w + 8, h + 8);
+            Color[] palette = new Color[mScene.Layers.Count];
+
+            // Standard renderer, painter's algorithm: frame is ordered farthest first. One brush and two
+            // pens are reused for every shape, shapes off screen are skipped, and faces only a few pixels
+            // across get no outline (it would just cover them).
+            using (SolidBrush brush = new SolidBrush(Color.Black))
+            using (Pen edge = new Pen(Color.Black, 1.5f))
+            using (Pen line = new Pen(Color.Black, 2.5f))
+            using (Pen selPen = new Pen(Color.FromArgb(255, 140, 0), 3f))
+            {
+                int alpha = mTranslucent ? 150 : 255;
+                foreach (ShapeScreenPoints shape in frame)
+                {
+                    RectangleF b = shape.Bounds;
+                    if (!b.IntersectsWith(view) && !(b.Width == 0 && b.Height == 0 && view.Contains(b.Location))) continue;
+                    PointF[] pts = shape.Pts;
+                    Color baseColor = EffectiveColor(shape.LayerIndex);
+                    if (shape.Closed)
+                    {
+                        if (!mWireframe && pts.Length >= 3)
+                        {
+                            brush.Color = Darken(baseColor, shape.Shade, alpha);
+                            if (b.Width < 1.5f && b.Height < 1.5f) g.FillRectangle(brush, b.X, b.Y, 1.5f, 1.5f);   // Sub-pixel face: a dot is enough
+                            else g.FillPolygon(brush, pts);
+                        }
+                        if (mWireframe || b.Width > 3 || b.Height > 3)
+                        {
+                            edge.Color = mWireframe ? baseColor : Darken(baseColor, 0.45f, 255);
+                            g.DrawPolygon(edge, pts);
+                        }
+                    }
+                    else
+                    {
+                        line.Color = Darken(baseColor, 0.8f, 255);
+                        g.DrawLines(line, pts);
+                    }
+                    if (selectedGroup.Contains(shape.LayerIndex))
+                        DrawOutline(g, selPen, pts, shape.Closed);
+                }
+            }
+            return frame.Count;
         }
 
         /// <summary>

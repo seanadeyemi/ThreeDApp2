@@ -28,6 +28,7 @@ namespace ThreeDApp2
         const uint GL_FRAMEBUFFER = 0x8D40, GL_READ_FRAMEBUFFER = 0x8CA8, GL_DRAW_FRAMEBUFFER = 0x8CA9, GL_RENDERBUFFER = 0x8D41;
         const uint GL_COLOR_ATTACHMENT0 = 0x8CE0, GL_DEPTH_ATTACHMENT = 0x8D00, GL_RGBA8 = 0x8058, GL_DEPTH_COMPONENT24 = 0x81A6;
         const uint GL_FRAMEBUFFER_COMPLETE = 0x8CD5, GL_NEAREST = 0x2600, GL_BGRA = 0x80E1, GL_PACK_ALIGNMENT = 0x0D05;
+        const uint GL_ARRAY_BUFFER = 0x8892, GL_STATIC_DRAW = 0x88E4;
 
         [StructLayout(LayoutKind.Sequential)]
         struct PIXELFORMATDESCRIPTOR
@@ -81,6 +82,7 @@ namespace ThreeDApp2
         delegate uint StatusDel(uint target);
         delegate void BlitDel(int sx0, int sy0, int sx1, int sy1, int dx0, int dy0, int dx1, int dy1, uint mask, uint filter);
         delegate void BlendSepDel(uint srcRgb, uint dstRgb, uint srcA, uint dstA);
+        delegate void BufferDataDel(uint target, IntPtr size, IntPtr data, uint usage);
 
         GenDel glGenFramebuffers, glGenRenderbuffers;
         DelDel glDeleteFramebuffers, glDeleteRenderbuffers;
@@ -91,6 +93,10 @@ namespace ThreeDApp2
         StatusDel glCheckFramebufferStatus;
         BlitDel glBlitFramebuffer;
         BlendSepDel glBlendFuncSeparate;
+        GenDel glGenBuffers;
+        DelDel glDeleteBuffers;
+        BindDel glBindBuffer;
+        BufferDataDel glBufferData;
 
         T Proc<T>(string name) where T : class
         {
@@ -112,6 +118,8 @@ namespace ThreeDApp2
         uint mResolveFbo, mResolveRb;           // Plain target the multisampled picture is resolved into
         int mSamples, mWidth, mHeight;
         Bitmap mBitmap;
+        uint mTriBuffer;            // Face positions kept on the graphics card between frames
+        int mTriBufferStamp;
         byte[] mPixels = new byte[0];
 
         /// <summary>The graphics card and driver, e.g. "NVIDIA Quadro K1100M (OpenGL 4.6)".</summary>
@@ -173,6 +181,10 @@ namespace ThreeDApp2
             glCheckFramebufferStatus = Proc<StatusDel>("glCheckFramebufferStatus");
             glBlitFramebuffer = Proc<BlitDel>("glBlitFramebuffer");
             glBlendFuncSeparate = Proc<BlendSepDel>("glBlendFuncSeparate");
+            glGenBuffers = Proc<GenDel>("glGenBuffers");
+            glDeleteBuffers = Proc<DelDel>("glDeleteBuffers");
+            glBindBuffer = Proc<BindDel>("glBindBuffer");
+            glBufferData = Proc<BufferDataDel>("glBufferData");
             if (glGenFramebuffers == null || glBindFramebuffer == null || glGenRenderbuffers == null || glBindRenderbuffer == null ||
                 glFramebufferRenderbuffer == null || glRenderbufferStorage == null || glCheckFramebufferStatus == null)
                 throw new NotSupportedException("The graphics driver (" + Description + ") has no off-screen framebuffers. Update the graphics driver, or use the Standard renderer.");
@@ -271,16 +283,16 @@ namespace ThreeDApp2
             glEnable(GL_POLYGON_OFFSET_FILL);
             glPolygonOffset(1f, 1f);
             if (f.TrianglesTranslucent) glDepthMask(0);
-            Draw(GL_TRIANGLES, f.TriPositions.ToArray(), f.TriColors.ToArray());
+            DrawTriangles(f);
             glDepthMask(1);
             glDisable(GL_POLYGON_OFFSET_FILL);
 
             if (mSamples == 0) glEnable(GL_LINE_SMOOTH);
             foreach (GpuLines lines in f.Lines)
             {
-                if (lines.Positions.Count == 0) continue;
+                if (lines.VertexCount == 0) continue;
                 glLineWidth(lines.Width);
-                Draw(GL_LINES, lines.Positions.ToArray(), lines.Colors.ToArray());
+                Draw(GL_LINES, lines.Positions, lines.Colors, lines.VertexCount);
             }
             glDisable(GL_LINE_SMOOTH);
             glDisableClientState(GL_COLOR_ARRAY);
@@ -312,16 +324,46 @@ namespace ThreeDApp2
             return mBitmap;
         }
 
-        static void Draw(uint mode, float[] positions, byte[] colors)
+        /// <summary>
+        /// Faces: positions stay on the graphics card until the shapes change (only colours are sent
+        /// each frame), which matters for big models. Falls back to plain arrays on old drivers.
+        /// </summary>
+        void DrawTriangles(GpuFrame f)
         {
-            if (positions.Length == 0) return;
+            if (f.TriVertexCount == 0) return;
+            bool vbo = glGenBuffers != null && glBindBuffer != null && glBufferData != null && f.GeometryStamp > 0;
+            if (!vbo) { Draw(GL_TRIANGLES, f.TriPositions, f.TriColors, f.TriVertexCount); return; }
+            if (mTriBuffer == 0) glGenBuffers(1, out mTriBuffer);
+            glBindBuffer(GL_ARRAY_BUFFER, mTriBuffer);
+            if (mTriBufferStamp != f.GeometryStamp)
+            {
+                GCHandle hp = GCHandle.Alloc(f.TriPositions, GCHandleType.Pinned);
+                try { glBufferData(GL_ARRAY_BUFFER, new IntPtr((long)f.TriVertexCount * 12), hp.AddrOfPinnedObject(), GL_STATIC_DRAW); }
+                finally { hp.Free(); }
+                mTriBufferStamp = f.GeometryStamp;
+            }
+            glVertexPointer(3, GL_FLOAT, 0, IntPtr.Zero);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            GCHandle hc = GCHandle.Alloc(f.TriColors, GCHandleType.Pinned);
+            try
+            {
+                glColorPointer(4, GL_UNSIGNED_BYTE, 0, hc.AddrOfPinnedObject());
+                glDrawArrays(GL_TRIANGLES, 0, f.TriVertexCount);
+                glFinish();
+            }
+            finally { hc.Free(); }
+        }
+
+        static void Draw(uint mode, float[] positions, byte[] colors, int count)
+        {
+            if (count == 0) return;
             GCHandle hp = GCHandle.Alloc(positions, GCHandleType.Pinned);
             GCHandle hc = GCHandle.Alloc(colors, GCHandleType.Pinned);
             try
             {
                 glVertexPointer(3, GL_FLOAT, 0, hp.AddrOfPinnedObject());
                 glColorPointer(4, GL_UNSIGNED_BYTE, 0, hc.AddrOfPinnedObject());
-                glDrawArrays(mode, 0, positions.Length / 3);
+                glDrawArrays(mode, 0, count);
                 glFinish();   // The arrays are unpinned right after, so let the driver finish reading them
             }
             finally { hp.Free(); hc.Free(); }
@@ -335,6 +377,7 @@ namespace ThreeDApp2
                 {
                     wglMakeCurrent(mDC, mContext);
                     FreeTargets();
+                    if (mTriBuffer != 0 && glDeleteBuffers != null) glDeleteBuffers(1, ref mTriBuffer);
                     wglMakeCurrent(IntPtr.Zero, IntPtr.Zero);
                     wglDeleteContext(mContext);
                 }
