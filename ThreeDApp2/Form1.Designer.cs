@@ -36,6 +36,8 @@
             this.circleBtn = new System.Windows.Forms.ToolStripButton();
             this.pushPullBtn = new System.Windows.Forms.ToolStripButton();
             this.moveBtn = new System.Windows.Forms.ToolStripButton();
+            this.rotateBtn = new System.Windows.Forms.ToolStripButton();
+            this.scaleBtn = new System.Windows.Forms.ToolStripButton();
             this.panBtn = new System.Windows.Forms.ToolStripButton();
             this.orbitBtn = new System.Windows.Forms.ToolStripButton();
             this.toolSep1 = new System.Windows.Forms.ToolStripSeparator();
@@ -93,6 +95,8 @@
             this.circleBtn,
             this.pushPullBtn,
             this.moveBtn,
+            this.rotateBtn,
+            this.scaleBtn,
             this.panBtn,
             this.orbitBtn,
             this.toolSep1,
@@ -175,7 +179,23 @@
             this.moveBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this.moveBtn.Text = "Move";
             this.moveBtn.Click += new System.EventHandler(this.moveBtn_Click);
-            this.moveBtn.ToolTipText = "Move (M): hold Ctrl when you click to copy";
+            this.moveBtn.ToolTipText = "Move (M): drag the arrows of the selected shape, or click a shape to pick it up. Ctrl copies";
+            //
+            // rotateBtn
+            //
+            this.rotateBtn.Name = "rotateBtn";
+            this.rotateBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.rotateBtn.Text = "Rotate";
+            this.rotateBtn.Click += new System.EventHandler(this.rotateBtn_Click);
+            this.rotateBtn.ToolTipText = "Rotate (Q): drag a ring of the selected shape; type an angle for an exact turn";
+            //
+            // scaleBtn
+            //
+            this.scaleBtn.Name = "scaleBtn";
+            this.scaleBtn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.scaleBtn.Text = "Scale";
+            this.scaleBtn.Click += new System.EventHandler(this.scaleBtn_Click);
+            this.scaleBtn.ToolTipText = "Scale (E): drag a box to stretch along an axis or the centre to scale evenly; type a factor";
             //
             // panBtn
             //
@@ -479,6 +499,8 @@
         private System.Windows.Forms.ToolStripButton circleBtn;
         private System.Windows.Forms.ToolStripButton pushPullBtn;
         private System.Windows.Forms.ToolStripButton moveBtn;
+        private System.Windows.Forms.ToolStripButton rotateBtn;
+        private System.Windows.Forms.ToolStripButton scaleBtn;
         private System.Windows.Forms.ToolStripButton panBtn;
         private System.Windows.Forms.ToolStripButton orbitBtn;
         private System.Windows.Forms.ToolStripButton importBtn;

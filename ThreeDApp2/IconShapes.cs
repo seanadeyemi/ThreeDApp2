@@ -30,7 +30,7 @@ namespace ThreeDApp2
 
         public static readonly string[] Names =
         {
-            "select", "line", "rectangle", "circle", "pushpull", "move", "pan", "pan-grab", "orbit", "import", "export", "render",
+            "select", "line", "rectangle", "circle", "pushpull", "move", "rotate", "scale", "pan", "pan-grab", "orbit", "import", "export", "render",
             "undo", "redo", "view-front", "view-top", "view-left", "view-right", "view-iso", "perspective", "ortho",
             "grid", "axes", "color", "delete", "options",
         };
@@ -78,6 +78,22 @@ namespace ThreeDApp2
                     p.Add(Poly(Red, Color.Empty, 0, 8.5f, 19, 12, 23, 15.5f, 19));
                     p.Add(Poly(Red, Color.Empty, 0, 5, 8.5f, 1, 12, 5, 15.5f));
                     p.Add(Poly(Red, Color.Empty, 0, 19, 8.5f, 23, 12, 19, 15.5f));
+                    break;
+
+                case "rotate":
+                    // A box on a turntable with a red arrow going round it.
+                    p.Add(Poly(Color.FromArgb(230, 200, 140), Ink, 1f, 7, 10, 12, 7.5f, 17, 10, 12, 12.5f));
+                    p.Add(Poly(Color.FromArgb(205, 170, 105), Ink, 1f, 7, 10, 12, 12.5f, 12, 18, 7, 15.5f));
+                    p.Add(Poly(Color.FromArgb(165, 130, 75), Ink, 1f, 12, 12.5f, 17, 10, 17, 15.5f, 12, 18));
+                    ArrowArc(p, Red, 12, 12.5f, 8.5f, 150, 390);
+                    break;
+
+                case "scale":
+                    // A small box growing into a big outline along a diagonal arrow.
+                    p.Add(Poly(Color.Empty, Color.FromArgb(120, 125, 135), 1.1f, 3, 3, 21, 3, 21, 21, 3, 21));
+                    p.Add(Poly(Color.FromArgb(150, 195, 245), Ink, 1.1f, 3, 13, 11, 13, 11, 21, 3, 21));
+                    p.Add(Line(Red, 2f, 9, 15, 17.5f, 6.5f));
+                    p.Add(Poly(Red, Color.Empty, 0, 20.5f, 3.5f, 19.5f, 10.5f, 13.5f, 4.5f));
                     break;
 
                 case "pan":

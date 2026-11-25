@@ -160,7 +160,7 @@ namespace ThreeDApp2
             var icons = new Dictionary<ToolStripItem, string>
             {
                 { selectBtn, "select" }, { lineBtn, "line" }, { rectBtn, "rectangle" }, { circleBtn, "circle" },
-                { pushPullBtn, "pushpull" }, { moveBtn, "move" }, { panBtn, "pan" }, { orbitBtn, "orbit" }, { importBtn, "import" }, { exportBtn, "export" },
+                { pushPullBtn, "pushpull" }, { moveBtn, "move" }, { rotateBtn, "rotate" }, { scaleBtn, "scale" }, { panBtn, "pan" }, { orbitBtn, "orbit" }, { importBtn, "import" }, { exportBtn, "export" },
                 { undoBtn, "undo" }, { redoBtn, "redo" },
                 { frontViewBtn, "view-front" }, { topViewBtn, "view-top" }, { leftViewBtn, "view-left" },
                 { rightViewBtn, "view-right" }, { isoViewBtn, "view-iso" }, { projectionBtn, mScene != null && mScene.Orthographic ? "ortho" : "perspective" },
@@ -506,6 +506,8 @@ namespace ThreeDApp2
         private void circleBtn_Click(object sender, EventArgs e) { SetTool(Tool.Circle); }
         private void pushPullBtn_Click(object sender, EventArgs e) { SetTool(Tool.PushPull); }
         private void moveBtn_Click(object sender, EventArgs e) { SetTool(Tool.Move); }
+        private void rotateBtn_Click(object sender, EventArgs e) { SetTool(Tool.Rotate); }
+        private void scaleBtn_Click(object sender, EventArgs e) { SetTool(Tool.Scale); }
         private void undoBtn_Click(object sender, EventArgs e) { Undo(); }
         private void redoBtn_Click(object sender, EventArgs e) { Redo(); }
         private void frontViewBtn_Click(object sender, EventArgs e) { FrontView(); }
@@ -687,7 +689,7 @@ namespace ThreeDApp2
 
             // While a tool is mid-operation, number keys go to the measurement box (like SketchUp).
             char typed;
-            if (OperationActive && TryMeasurementChar(e, out typed))
+            if ((OperationActive || TransformTakesTyping) && TryMeasurementChar(e, out typed))
             {
                 mTyped += typed;
                 UpdateStatus();
@@ -722,6 +724,8 @@ namespace ThreeDApp2
                 case Keys.C: SetTool(Tool.Circle); break;
                 case Keys.P: SetTool(Tool.PushPull); break;
                 case Keys.M: SetTool(Tool.Move); break;
+                case Keys.Q: SetTool(Tool.Rotate); break;
+                case Keys.E: SetTool(Tool.Scale); break;
 
                 // Camera: arrows pan, +/- move in and out, PgUp/PgDn change the field of view
                 case Keys.Right: mScene.PanPixels(-panStep, 0); break;
@@ -1132,8 +1136,9 @@ namespace ThreeDApp2
                     mGpu != null ? "GPU, " + mGpuDescription : "Standard",
                     mScene.Orthographic ? "orthographic" : "perspective"),
                 "",
-                "Tools: S select  L line  R rectangle  C circle  P push/pull  M move  H pan  O orbit   Esc: cancel",
+                "Tools: S select  L line  R rectangle  C circle  P push/pull  M move  Q rotate  E scale  H pan  O orbit   Esc: cancel",
                 "While drawing: type a length + Enter   Enter/double-click: finish line   Backspace: remove point",
+                "Move/Rotate/Scale: drag the handles (Shift fine, Ctrl copies), then type an exact distance, angle or factor + Enter",
                 "Middle/right-drag: orbit   Shift+drag: pan   Wheel: zoom to cursor   Corner gizmo: drag to orbit, click an axis to look along it",
                 "X/Y: tilt/turn (Shift reverses)   Z: zoom extents   Ctrl+1..5: views   Home: start view   Space: spin   V / NumPad 5: perspective/ortho",
                 "W wireframe  T translucent  G grid  A axes  N add layer  Del delete  Ctrl+Z/Y  Ctrl+S/O/N  Ctrl+I/E import/export  F1 hide",
